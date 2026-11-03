@@ -27,7 +27,17 @@ function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      components={{ table: (props) => <div className="tbl"><table {...props} /></div> }}
+      // Model output can be steered by pasted documents, so it must never make the
+      // browser fetch a URL: images render as their alt text, and only plain
+      // http(s) links survive (opened in a new tab without a referrer).
+      components={{
+        table: (props) => <div className="tbl"><table {...props} /></div>,
+        img: ({ alt }) => (alt ? <span>[image: {alt}]</span> : null),
+        a: ({ href, children }) =>
+          href && /^https?:\/\//i.test(href)
+            ? <a href={href} target="_blank" rel="noopener noreferrer nofollow">{children}</a>
+            : <span>{children}</span>,
+      }}
     >
       {text}
     </ReactMarkdown>

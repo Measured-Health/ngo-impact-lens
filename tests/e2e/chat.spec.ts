@@ -81,6 +81,20 @@ test("the review survives a reload and New review clears it after confirming", a
   await expect(page.locator(".msg.you")).toHaveCount(0);
 });
 
+test("model output cannot make the browser load remote images or script links", async ({ page }) => {
+  const external: string[] = [];
+  page.on("request", (r) => { if (!r.url().startsWith("http://127.0.0.1")) external.push(r.url()); });
+  await say(page, "INJECT_PLEASE");
+  const reply = page.locator(".msg.bot").nth(1);
+  await expect(reply).toContainText("[image: chart]");
+  await expect(reply.locator("img")).toHaveCount(0);
+  await expect(reply.locator('a[href^="javascript"]')).toHaveCount(0);
+  await expect(reply.locator('a[href="https://example.org"]')).toHaveAttribute("rel", /noreferrer/);
+  expect(external).toEqual([]);
+  const csp = (await page.request.get("/")).headers()["content-security-policy"];
+  expect(csp).toContain("img-src 'self'");
+});
+
 test("the API rejects models that are not configured", async ({ request }) => {
   const res = await request.post("/api/chat", { data: { model: "openai:gpt-6.1-sol", turns: [{ role: "user", content: "hi" }] } });
   expect(res.status()).toBe(400);
