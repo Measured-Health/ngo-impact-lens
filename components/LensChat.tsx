@@ -47,7 +47,7 @@ function Markdown({ text }: { text: string }) {
 function BotMessage({ text, lens, children }: { text: string | null; lens?: string; children?: React.ReactNode }) {
   return (
     <div className="msg bot">
-      <div className="who">Impact Lens{lens ? <span className="as">as {lens}</span> : null}</div>
+      <div className="who"><LensMark /><b>Impact Lens</b>{lens ? <span className="as">as {lens}</span> : null}</div>
       <div className="body">{text === null ? <div className="thinking">Thinking…</div> : <Markdown text={text} />}</div>
       {children}
     </div>
@@ -72,6 +72,51 @@ function ReplyTools({ text }: { text: string }) {
         }}>Save report (.md)</button>
       ) : null}
     </div>
+  );
+}
+
+// Stage labels carry their number ("1 · Understand…"); the stepper shows the number separately.
+const stageName = (label: string) => label.replace(/^\d+\s*·\s*/, "");
+
+const TEMPLATE = "Organization: \nWhere it works: \nWho it serves: \nMain programme or product: \nHow it is funded: \nWhat it says it achieves: ";
+
+function LensMark() {
+  return (
+    <svg className="mark" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="12" fill="none" stroke="var(--orange)" strokeWidth="4" />
+      <circle cx="16" cy="16" r="4.5" fill="var(--green)" />
+    </svg>
+  );
+}
+
+function Check() {
+  return <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2.5 6.2 5 8.6l4.6-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function Clip() {
+  return <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M13.5 6.5 7.8 12.2a1.8 1.8 0 0 0 2.5 2.5l6-6a3.5 3.5 0 0 0-5-5l-6.2 6.2a5.2 5.2 0 0 0 7.4 7.4l5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>;
+}
+
+// The eight diagnostic areas as a ring: green once covered, orange for the one being probed now.
+function Dial({ covered, current, size, labels = false }: { covered: number[]; current: number; size: number; labels?: boolean }) {
+  const n = AREAS.length, c = 50, r = 38, gap = 7;
+  const pt = (deg: number, rad = r) => [c + rad * Math.cos((deg * Math.PI) / 180), c + rad * Math.sin((deg * Math.PI) / 180)];
+  return (
+    <svg className={"dial" + (labels ? " big" : "")} width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+      {AREAS.map((_, i) => {
+        const a0 = -90 + (i * 360) / n + gap / 2, a1 = a0 + 360 / n - gap;
+        const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+        const state = current === i + 1 ? "now" : covered.includes(i + 1) ? "done" : "";
+        const [lx, ly] = pt((a0 + a1) / 2, 26);
+        return (
+          <g key={i}>
+            <path className={"seg " + state} style={{ animationDelay: `${i * 70}ms` }} d={`M${x0} ${y0} A${r} ${r} 0 0 1 ${x1} ${y1}`} />
+            {labels ? <text x={lx} y={ly} className="seg-num">{i + 1}</text> : null}
+          </g>
+        );
+      })}
+      {labels ? null : <text x={c} y={c} className="dial-n">{covered.length}</text>}
+    </svg>
   );
 }
 
@@ -115,7 +160,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
 
   useEffect(() => {
     const el = logRef.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
+    if (el && stick.current && (turns.length > 0 || streaming !== null)) el.scrollTop = el.scrollHeight;
   }, [turns, streaming, failure]);
 
   const noModels = models.length === 0;
@@ -216,26 +261,53 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
   const last = turns[turns.length - 1];
   const unanswered = loaded && !busy && !failure && last?.role === "user";
 
+  const covered = review.covered.length;
+
   return (
     <div className="app">
       <aside className={"side" + (sideOpen ? " open" : "")} aria-label="Diagnostic map">
-        <button className="btn quiet close-side" type="button" onClick={() => setSideOpen(false)}>Close ✕</button>
-        <div className="brand">
-          <h1>NGO Strategy &amp; Impact Lens</h1>
-          <p>Tests whether a mission, theory of change, strategy, funding model and accountability system fit together. It asks one hard question at a time.</p>
+        <div className="side-head">
+          <div className="brand">
+            <LensMark />
+            <div><b>Impact Lens</b><span>NGO strategy review</span></div>
+          </div>
+          <button className="ghost close-side" type="button" onClick={() => setSideOpen(false)}>Close</button>
         </div>
 
         {models.length > 1 ? (
-          <section>
-            <label className="label" htmlFor="model">Model</label>
-            <select id="model" className="model-select" value={model} disabled={busy} onChange={(e) => setModel(e.target.value)}>
+          <label className="model side-model">
+            <span className="side-title">Model</span>
+            <select value={model} disabled={busy} onChange={(e) => setModel(e.target.value)}>
               {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
-          </section>
+          </label>
         ) : null}
 
+        <section className="dial-card">
+          <Dial covered={review.covered} current={review.current} size={64} />
+          <div className="dial-copy">
+            <b>{covered} of {AREAS.length} areas</b>
+            <span>{review.current ? `Now probing: ${AREAS[review.current - 1]}` : "Starts once you describe the organization"}</span>
+          </div>
+        </section>
+
         <section>
-          <p className="label">Stakeholder lens</p>
+          <h2 className="side-title">Diagnostic areas</h2>
+          <ol className="chain">
+            {AREAS.map((a, i) => {
+              const n = i + 1, done = review.covered.includes(n), now = review.current === n;
+              return (
+                <li key={a} className={now ? "now" : done ? "done" : ""}>
+                  <span className="dot">{done && !now ? <Check /> : n}</span><span>{a}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+
+        <section>
+          <h2 className="side-title">Stakeholder lens</h2>
+          <p className="side-sub">Pick who the advisor speaks for. It stays in that role until you switch.</p>
           <div className="lenses">
             {LENSES.map((l) => (
               <button key={l} type="button" className="lens" aria-pressed={review.lens === l} disabled={!canChat}
@@ -246,50 +318,63 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
           </div>
         </section>
 
-        <section>
-          <p className="label">Review stage</p>
-          <div className="stages">{STAGES.map((s, i) => <span key={s.id} className={i <= stageIndex ? "on" : ""} title={s.label} />)}</div>
-          <div className="stage-name" data-testid="stage">{STAGES[stageIndex].label}</div>
-        </section>
-
-        <section>
-          <p className="label">Diagnostic areas</p>
-          <ol className="chain">
-            {AREAS.map((a, i) => {
-              const n = i + 1, done = review.covered.includes(n), now = review.current === n;
-              return (
-                <li key={a} className={now ? "now" : done ? "done" : ""}>
-                  <span className="dot">{done && !now ? "✓" : n}</span><span>{a}</span>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-
         <div className="actions">
-          <button className="btn" type="button" disabled={!canChat || turns.length === 0}
+          <button className="act" type="button" disabled={!canChat || turns.length === 0}
             onClick={() => send("Give me a realistic stress-test scenario for this organization now, chosen to probe its weakest point so far. I will explain how the organization would respond without abandoning its mission.", "Stress test requested")}>
-            Run a stress test<small>A realistic shock: funding cut, partner exit, drift…</small>
+            Run a stress test<small>A funding cut, a partner leaving, mission drift</small>
           </button>
-          <button className="btn primary" type="button" disabled={!canChat || turns.length === 0}
+          <button className="act primary" type="button" disabled={!canChat || turns.length === 0}
             onClick={() => send("Please produce the NGO Strategy and Alignment Report now. If some areas have not been examined yet, say which ones and treat them as gaps.", "Report requested")}>
             Generate the report<small>NGO Strategy and Alignment Report</small>
           </button>
-          <button className="btn quiet" type="button" onClick={reset}>
+          <button className="ghost reset" type="button" onClick={reset}>
             {confirmReset ? "Click again to clear this review" : "Start a new review"}
           </button>
         </div>
       </aside>
+      {sideOpen ? <div className="scrim" onClick={() => setSideOpen(false)} aria-hidden="true" /> : null}
 
       <main className="chat">
-        <div className="topbar">
-          <div><b>NGO Impact Lens</b><div className="lensnow">{review.lens ? `Lens: ${review.lens}` : "No lens chosen yet"}</div></div>
-          <button className="icon-btn" type="button" onClick={() => setSideOpen(true)}>Map &amp; lens</button>
-        </div>
+        <header className="topbar">
+          <div className="mobile-brand"><LensMark /><b>Impact Lens</b></div>
+          <ol className="stepper" aria-label="Review stage">
+            {STAGES.map((s, i) => (
+              <li key={s.id} className={i < stageIndex ? "past" : i === stageIndex ? "current" : ""}
+                aria-current={i === stageIndex ? "step" : undefined} title={stageName(s.label)}>
+                <span className="num">{i < stageIndex ? <Check /> : i + 1}</span>
+                <span className="lbl" data-testid={i === stageIndex ? "stage" : undefined}>{stageName(s.label)}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="top-right">
+            {models.length > 1 ? (
+              <label className="model top-model">
+                <span className="sr">Model</span>
+                <select id="model" value={model} disabled={busy} onChange={(e) => setModel(e.target.value)}>
+                  {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+              </label>
+            ) : null}
+            <button className="ghost map-btn" type="button" onClick={() => setSideOpen(true)}>Map &amp; lens</button>
+          </div>
+        </header>
 
         <div className="log" ref={logRef} aria-live="polite"
           onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}>
           <div className="log-inner">
+            {loaded && turns.length === 0 ? (
+              <section className="hero">
+                <div className="hero-copy">
+                  <h1>Does your strategy hold together?</h1>
+                  <p>Describe an organization or project. The Lens questions it one point at a time, from the stakeholder you choose, across eight areas from mission to measurement. Then it writes an alignment report.</p>
+                  <div className="hero-actions">
+                    <button className="pill solid" type="button" onClick={() => { setDraft(TEMPLATE); document.getElementById("box")?.focus(); }}>Start from a template</button>
+                    <label className="pill" htmlFor="file">Attach a strategy document</label>
+                  </div>
+                </div>
+                <Dial covered={[1, 2, 3]} current={4} size={240} labels />
+              </section>
+            ) : null}
             <BotMessage text={OPENING} />
             {turns.map((t, i) =>
               t.role === "user"
@@ -339,27 +424,27 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
               <div className="docs">
                 {docs.map((d, i) => (
                   <span className="doc" key={d.name + i}>
-                    <span>📄 {d.name} · {Math.round(d.text.length / 1000)}k chars</span>
+                    <span>{d.name} ({Math.round(d.text.length / 1000)}k characters)</span>
                     <button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs(docs.filter((_, j) => j !== i))}>✕</button>
                   </span>
                 ))}
               </div>
             ) : null}
+            <textarea id="box" className="box" rows={1} value={draft} aria-label="Message"
+              placeholder="Describe the organization, or answer the question above"
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
+              }} />
             <div className="row">
-              <label className="icon-btn" htmlFor="file" title="Attach text documents">Attach</label>
+              <label className="attach" htmlFor="file" title="Attach text documents (.txt, .md, .csv)"><Clip />Attach</label>
               <input id="file" type="file" accept=".txt,.md,.markdown,.csv,.json,.html,text/*" multiple hidden
                 onChange={(e) => { void attach(e.target.files); e.target.value = ""; }} />
-              <textarea id="box" className="box" rows={1} value={draft} aria-label="Message"
-                placeholder="Describe the organization, or answer the question above…"
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
-                }} />
-              <button id="send" className={"icon-btn" + (busy ? "" : " send")} type="submit" disabled={!busy && !canChat}>
+              <span className="hint">Shift+Enter for a new line. For PDF or Word files, paste the text.</span>
+              <button id="send" className={"send" + (busy ? " stop" : "")} type="submit" disabled={!busy && !canChat}>
                 {busy ? "Stop" : "Send"}
               </button>
             </div>
-            <div className="hint">Enter to send · Shift+Enter for a new line · Attach .txt or .md files, or paste text from PDFs and Word documents</div>
           </form>
         </div>
       </main>

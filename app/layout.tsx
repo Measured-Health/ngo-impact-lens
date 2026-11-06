@@ -1,11 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
+import { Bricolage_Grotesque, Montserrat } from "next/font/google";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["500", "700"], variable: "--font-display" });
-const body = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-body" });
-const ui = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-ui" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500"], variable: "--font-mono" });
+// Display: a heavy, tightly tracked grotesque. Text: Montserrat, Pehtrah Foundation's own text face.
+const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["600", "800"], variable: "--font-display" });
+const text = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-text" });
 
 export const metadata: Metadata = {
   title: "NGO Strategy & Impact Lens",
@@ -17,7 +16,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${ui.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${text.variable}`}>
       <body>{children}</body>
     </html>
   );
