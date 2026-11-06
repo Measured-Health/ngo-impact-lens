@@ -96,8 +96,8 @@ button, textarea, input, select { font: inherit; color: inherit; }
 .msg.bot .body strong { font-weight: 600; }
 .msg.bot .body code { font-family: var(--mono); font-size: .85em; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px; }
 .msg.bot .body .tbl { overflow-x: auto; }
-.msg.bot .body table { border-collapse: collapse; font-family: var(--ui); font-size: .85rem; margin: .8em 0; }
-.msg.bot .body th, .msg.bot .body td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.msg.bot .body table { min-width: 680px; border-collapse: collapse; font-family: var(--ui); font-size: .85rem; margin: .8em 0; }
+.msg.bot .body th, .msg.bot .body td { min-width: 96px; border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
 .msg.bot .body th { background: var(--panel); }
 .tools { display: flex; gap: 6px; margin-top: 8px; }
 .tool { border: none; background: none; color: var(--muted); font-size: .76rem; cursor: pointer; padding: 2px 4px; border-radius: 4px; }

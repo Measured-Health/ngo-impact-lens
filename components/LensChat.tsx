@@ -23,6 +23,7 @@ function load(): { turns: ChatTurn[]; review: ReviewState; docs: LensDocument[];
   }
 }
 
+// Models often put <br> inside table cells; raw HTML is not rendered, so flatten it to a space.
 function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
@@ -39,7 +40,7 @@ function Markdown({ text }: { text: string }) {
             : <span>{children}</span>,
       }}
     >
-      {text}
+      {text.replace(/\s*<br\s*\/?>\s*/gi, " ")}
     </ReactMarkdown>
   );
 }

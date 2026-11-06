@@ -10,3 +10,4 @@ playwright-report/
 .env
 demo/
 .remote.env
+.demo-scenarios/

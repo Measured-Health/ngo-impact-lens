@@ -189,6 +189,24 @@ export function errorMarker(message: string): string {
   return "\n<!--lens-error " + JSON.stringify({ message }) + "-->";
 }
 
+const letters = (t: string) => t.toLowerCase().replace(/[^a-z]+/g, " ").trim();
+const LENS_KEYWORDS: [string, (typeof LENSES)[number]][] = [
+  ["community", "Community member"], ["participant", "Program participant"], ["frontline", "Frontline employee"],
+  ["employee", "Frontline employee"], ["staff", "Frontline employee"], ["executive", "Executive director"],
+  ["board", "Board member"], ["donor", "Donor or foundation officer"], ["foundation", "Donor or foundation officer"],
+  ["funder", "Donor or foundation officer"], ["government", "Government official"], ["official", "Government official"],
+  ["partner", "Implementation partner"], ["investor", "Social investor"], ["evaluator", "Independent evaluator"],
+];
+
+/** Maps a model's spelling of a lens ("Donor / Foundation Officer") to the app's label. */
+export function matchLens(raw: string): string {
+  const t = letters(raw);
+  const exact = LENSES.find((l) => letters(l) === t);
+  if (exact) return exact;
+  const hit = LENS_KEYWORDS.find(([k]) => t.split(" ").includes(k));
+  return hit ? hit[1] : raw.slice(0, 80);
+}
+
 /** Folds a reply's state marker into the review state, ignoring anything malformed. */
 export function mergeState(prev: ReviewState, marker: Partial<ReviewState> | null): ReviewState {
   if (!marker) return prev;
@@ -199,8 +217,6 @@ export function mergeState(prev: ReviewState, marker: Partial<ReviewState> | nul
     const add = marker.covered.filter((n) => Number.isInteger(n) && n >= 1 && n <= 8);
     next.covered = [...new Set([...next.covered, ...add])].sort((a, b) => a - b);
   }
-  if (typeof marker.lens === "string" && marker.lens) {
-    next.lens = LENSES.find((l) => l.toLowerCase() === marker.lens!.toLowerCase()) ?? marker.lens.slice(0, 80);
-  }
+  if (typeof marker.lens === "string" && marker.lens) next.lens = matchLens(marker.lens);
   return next;
 }

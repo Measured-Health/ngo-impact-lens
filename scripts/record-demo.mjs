@@ -11,18 +11,27 @@ const OUT = path.resolve(process.env.OUT_DIR ?? "demo");
 const SIZE = { width: 1280, height: 800 };
 const REPLY_TIMEOUT = 240_000;
 
-// A fictional organization, so the video shows no real NGO's data.
-const ORG =
-  "We are Bright Futures Coding Clubs, a fictional 3-year-old NGO in Benin City, Nigeria. " +
-  "We run free after-school coding clubs for girls aged 12-17 in 6 public secondary schools, about 240 girls a year. " +
-  "The problem we see: very few young women from these schools go into tech jobs. " +
-  "We are funded by two foundation grants and one corporate sponsor. I am the founder, preparing for a board strategy retreat.";
-const EVIDENCE =
-  "Our evidence so far: attendance is 78% across the year, and in a survey of 2024 leavers, 31 of 90 girls said they planned to study a STEM subject. " +
-  "We have no comparison group and we do not track what girls do after school. Teachers tell us confidence goes up, but we have not measured it.";
-const STRESS =
-  "We would protect the clubs in the 3 schools with the strongest teacher champions, ask the corporate sponsor for laptops instead of cash, " +
-  "and train older girls as paid peer mentors so we can cut one paid facilitator role. We would tell parents and schools early and explain why.";
+// The walkthrough script. Defaults to a fictional organization; pass
+// SCENARIO=path/to/scenario.json to describe a real one (same keys as below).
+const DEFAULT_SCENARIO = {
+  file: "ngo-impact-lens-demo",
+  intro: "It opens by asking what organization we are examining.",
+  describeCaption: "1 · Describe the organization (this one is fictional).",
+  org:
+    "We are Bright Futures Coding Clubs, a fictional 3-year-old NGO in Benin City, Nigeria. " +
+    "We run free after-school coding clubs for girls aged 12-17 in 6 public secondary schools, about 240 girls a year. " +
+    "The problem we see: very few young women from these schools go into tech jobs. " +
+    "We are funded by two foundation grants and one corporate sponsor. I am the founder, preparing for a board strategy retreat.",
+  lens: "Donor or foundation officer",
+  lensCaption: "2 · Choose whose eyes to see it through, here a foundation officer.",
+  evidence:
+    "Our evidence so far: attendance is 78% across the year, and in a survey of 2024 leavers, 31 of 90 girls said they planned to study a STEM subject. " +
+    "We have no comparison group and we do not track what girls do after school. Teachers tell us confidence goes up, but we have not measured it.",
+  stress:
+    "We would protect the clubs in the 3 schools with the strongest teacher champions, ask the corporate sponsor for laptops instead of cash, " +
+    "and train older girls as paid peer mentors so we can cut one paid facilitator role. We would tell parents and schools early and explain why.",
+};
+const S = { ...DEFAULT_SCENARIO, ...(process.env.SCENARIO ? JSON.parse(fs.readFileSync(process.env.SCENARIO, "utf8")) : {}) };
 
 fs.mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
@@ -48,11 +57,23 @@ async function overlay(html, ms, full = false) {
 const caption = (text, ms = 3200) => overlay(text, ms);
 const clearOverlay = () => page.evaluate(() => document.getElementById("demo-overlay")?.remove());
 
+// Clicking a sidebar button scrolls the rail to it; put the progress map back in view.
+const showMap = () => page.evaluate(() => document.querySelector(".side")?.scrollTo({ top: 0, behavior: "smooth" }));
+
 async function waitForReply() {
   await page.locator("#send").filter({ hasText: "Stop" }).waitFor({ timeout: 10_000 }).catch(() => {});
   await page.locator("#send").filter({ hasText: "Send" }).waitFor({ timeout: REPLY_TIMEOUT });
-  const failed = await page.locator(".note.err").count();
-  if (failed) throw new Error("Model failed: " + (await page.locator(".note.err").first().innerText()));
+  // Free and busy models fail now and then; press Retry like a user would.
+  for (let attempt = 1; (await page.locator(".note.err").count()) > 0; attempt++) {
+    const why = await page.locator(".note.err").first().innerText();
+    if (attempt > 4) throw new Error("Model failed: " + why);
+    console.log(`retry ${attempt}: ${why}`);
+    await pause(8000 * attempt);
+    await page.getByRole("button", { name: "Retry" }).click();
+    await page.locator("#send").filter({ hasText: "Stop" }).waitFor({ timeout: 10_000 }).catch(() => {});
+    await page.locator("#send").filter({ hasText: "Send" }).waitFor({ timeout: REPLY_TIMEOUT });
+  }
+  await showMap();
   await pause(2500);
 }
 
@@ -90,25 +111,25 @@ try {
   await overlay("NGO Strategy &amp; Impact Lens<div style='font:400 22px/1.5 var(--ui),system-ui;margin-top:14px;opacity:.85'>A tough, friendly interviewer that checks whether an NGO's mission, theory of change,<br>strategy, funding and accountability fit together.</div>", 5500, true);
   await clearOverlay();
 
-  await caption("It opens by asking what organization we are examining.", 4000);
+  await caption(S.intro, 4000);
   await caption("Left: the review stages, the 8 areas it will examine, and the stakeholder lenses.", 4500);
   await clearOverlay();
 
-  await caption("1 · Describe the organization (this one is fictional).", 2500);
+  await caption(S.describeCaption, 3000);
   await clearOverlay();
-  await type(ORG);
+  await type(S.org);
   await waitForReply();
   await readReply(9000);
 
-  await caption("2 · Choose whose eyes to see it through, here a foundation officer.", 3500);
+  await caption(S.lensCaption, 3500);
   await clearOverlay();
-  await page.locator(".lens", { hasText: "Donor or foundation officer" }).click();
+  await page.locator(".lens", { hasText: S.lens }).click();
   await waitForReply();
   await readReply(9000);
 
   await caption("3 · Answer its questions. It challenges claims that lack evidence.", 3500);
   await clearOverlay();
-  await type(EVIDENCE);
+  await type(S.evidence);
   await waitForReply();
   await readReply(10000);
   await caption("The map on the left updates as areas are covered.", 3500);
@@ -119,7 +140,7 @@ try {
   await page.getByRole("button", { name: /Run a stress test/ }).click();
   await waitForReply();
   await readReply(9000);
-  await type(STRESS);
+  await type(S.stress);
   await waitForReply();
   await readReply(9000);
 
@@ -136,7 +157,7 @@ try {
   await context.close();
   await browser.close();
   if (video) {
-    const target = path.join(OUT, "ngo-impact-lens-demo.webm");
+    const target = path.join(OUT, S.file + ".webm");
     fs.renameSync(await video.path(), target);
     console.log("VIDEO", target);
   }
