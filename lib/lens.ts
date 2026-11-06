@@ -220,3 +220,14 @@ export function mergeState(prev: ReviewState, marker: Partial<ReviewState> | nul
   if (typeof marker.lens === "string" && marker.lens) next.lens = matchLens(marker.lens);
   return next;
 }
+
+/**
+ * Tidies model Markdown for display: models put <br> inside table cells and
+ * LaTeX arrows ($\rightarrow$) in prose, neither of which renders here.
+ */
+export function cleanModelMarkdown(text: string): string {
+  return text
+    .replace(/\s*<br\s*\/?>\s*/gi, " ")
+    .replace(/\$?\\(?:long)?(?:rightarrow|Rightarrow|to)\$?/g, "→")
+    .replace(/\$?\\(?:long)?(?:leftarrow|Leftarrow|gets)\$?/g, "←");
+}

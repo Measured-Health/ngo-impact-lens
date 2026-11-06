@@ -107,6 +107,8 @@ try {
   await page.reload();
   if (MODEL_ID && (await page.locator("#model").count())) await page.selectOption("#model", MODEL_ID);
   await page.locator("#send").waitFor();
+  // Hide a failed reply while the recorder retries it, so viewers don't see transient model errors.
+  await page.addStyleTag({ content: ".msg.bot:has(.note.err) { opacity: 0; }" });
 
   await overlay("NGO Strategy &amp; Impact Lens<div style='font:400 22px/1.5 var(--ui),system-ui;margin-top:14px;opacity:.85'>A tough, friendly interviewer that checks whether an NGO's mission, theory of change,<br>strategy, funding and accountability fit together.</div>", 5500, true);
   await clearOverlay();

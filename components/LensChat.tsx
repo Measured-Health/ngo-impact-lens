@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   AREAS, DOC_CHAR_LIMIT, INITIAL_STATE, LENSES, OPENING, STAGES,
-  mergeState, readErrorMarker, readStateMarker, stripProtocol,
+  cleanModelMarkdown, mergeState, readErrorMarker, readStateMarker, stripProtocol,
   type ChatTurn, type LensDocument, type ReviewState,
 } from "@/lib/lens";
 
@@ -23,7 +23,6 @@ function load(): { turns: ChatTurn[]; review: ReviewState; docs: LensDocument[];
   }
 }
 
-// Models often put <br> inside table cells; raw HTML is not rendered, so flatten it to a space.
 function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
@@ -40,7 +39,7 @@ function Markdown({ text }: { text: string }) {
             : <span>{children}</span>,
       }}
     >
-      {text.replace(/\s*<br\s*\/?>\s*/gi, " ")}
+      {cleanModelMarkdown(text)}
     </ReactMarkdown>
   );
 }

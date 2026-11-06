@@ -79,3 +79,12 @@ describe("matchLens", () => {
     expect(matchLens("Something else")).toBe("Something else");
   });
 });
+
+describe("cleanModelMarkdown", () => {
+  it("turns LaTeX arrows and <br> tags into plain text", async () => {
+    const { cleanModelMarkdown } = await import("@/lib/lens");
+    expect(cleanModelMarkdown("Inputs $\\rightarrow$ Activities \\to Outputs")).toBe("Inputs → Activities → Outputs");
+    expect(cleanModelMarkdown("| a<br>b | c <br/> d |")).toBe("| a b | c d |");
+    expect(cleanModelMarkdown("costs $5 and $10")).toBe("costs $5 and $10");
+  });
+});

