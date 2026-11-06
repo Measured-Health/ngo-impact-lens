@@ -49,6 +49,16 @@ CMDS
 
 To try it with a real model, run `npm run dev` on the server with a provider key in `.env.local`, then tunnel the port: `ssh -i ../stb.pem -N -L 3000:127.0.0.1:3000 steven-reid@75.46.59.136`.
 
+## Demo video
+
+`scripts/record-demo.mjs` walks the app through a full review of a fictional NGO, with captions, and records it. On the build server, start the app (`npx next start -p 3200 -H 127.0.0.1`), then:
+
+```bash
+MODEL_ID=google:gemini-3.8-flash BASE_URL=http://127.0.0.1:3200 node scripts/record-demo.mjs   # writes demo/ngo-impact-lens-demo.webm
+docker run --rm -v "$PWD/demo":/d -w /d linuxserver/ffmpeg -y -i ngo-impact-lens-demo.webm \
+  -c:v libx264 -crf 22 -pix_fmt yuv420p -movflags +faststart ngo-impact-lens-demo.mp4
+```
+
 ## Layout
 
 ```

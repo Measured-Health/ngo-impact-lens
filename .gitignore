@@ -8,3 +8,4 @@ playwright-report/
 .remote-cmds.sh
 .env*.local
 .env
+demo/
