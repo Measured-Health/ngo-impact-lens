@@ -68,3 +68,23 @@ describe("trimHistory", () => {
     expect(trimHistory(turns, 1000)).toEqual(turns);
   });
 });
+
+describe("matchLens", () => {
+  it("maps model spellings to the app's lens labels", async () => {
+    const { matchLens } = await import("@/lib/lens");
+    expect(matchLens("Donor / Foundation Officer")).toBe("Donor or foundation officer");
+    expect(matchLens("board member")).toBe("Board member");
+    expect(matchLens("Independent Evaluator")).toBe("Independent evaluator");
+    expect(matchLens("Program Participant")).toBe("Program participant");
+    expect(matchLens("Something else")).toBe("Something else");
+  });
+});
+
+describe("cleanModelMarkdown", () => {
+  it("turns LaTeX arrows and <br> tags into plain text", async () => {
+    const { cleanModelMarkdown } = await import("@/lib/lens");
+    expect(cleanModelMarkdown("Inputs $\\rightarrow$ Activities \\to Outputs")).toBe("Inputs → Activities → Outputs");
+    expect(cleanModelMarkdown("| a<br>b | c <br/> d |")).toBe("| a b | c d |");
+    expect(cleanModelMarkdown("costs $5 and $10")).toBe("costs $5 and $10");
+  });
+});

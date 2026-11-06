@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   AREAS, DOC_CHAR_LIMIT, INITIAL_STATE, LENSES, OPENING, STAGES,
-  mergeState, readErrorMarker, readStateMarker, stripProtocol,
+  cleanModelMarkdown, mergeState, readErrorMarker, readStateMarker, stripProtocol,
   type ChatTurn, type LensDocument, type ReviewState,
 } from "@/lib/lens";
 
@@ -39,7 +39,7 @@ function Markdown({ text }: { text: string }) {
             : <span>{children}</span>,
       }}
     >
-      {text}
+      {cleanModelMarkdown(text)}
     </ReactMarkdown>
   );
 }

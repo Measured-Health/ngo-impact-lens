@@ -1,6 +1,7 @@
 import { streamText } from "ai";
 import { buildInstructions, errorMarker, INITIAL_STATE, OPENING, trimHistory, type ChatTurn, type LensDocument, type ReviewState } from "@/lib/lens";
 import { listModels, resolveModel } from "@/lib/models";
+import { describe } from "@/lib/provider-errors";
 
 export const maxDuration = 300;
 
@@ -67,11 +68,4 @@ export async function POST(req: Request) {
     },
   });
   return new Response(stream, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
-}
-
-function describe(e: unknown): string {
-  const status = (e as { statusCode?: number })?.statusCode;
-  if (status === 401 || status === 403) return "The model provider rejected the server's API key.";
-  if (status === 429) return "The model provider is rate-limiting requests. Wait a minute, then retry.";
-  return "The model provider failed to reply. Retry, or pick another model.";
 }

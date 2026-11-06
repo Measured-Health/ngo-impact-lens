@@ -45,6 +45,12 @@ test("the report can be saved as Markdown", async ({ page }) => {
   await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
   await page.getByRole("button", { name: /Generate the report/ }).click();
   await expect(page.locator(".msg.bot").nth(2)).toContainText("NGO Strategy and Alignment Report");
+  // A long conversation scrolls inside the chat log; the page itself never scrolls,
+  // so the sidebar map stays in view.
+  const pageScroll = await page.evaluate(() => document.scrollingElement!.scrollHeight - window.innerHeight);
+  expect(pageScroll).toBeLessThanOrEqual(0);
+  const sideOverflow = await page.locator(".side").evaluate((el) => el.getBoundingClientRect().height - window.innerHeight);
+  expect(sideOverflow).toBeLessThanOrEqual(1);
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Save report (.md)" }).click();
   expect((await download).suggestedFilename()).toBe("ngo-strategy-alignment-report.md");
