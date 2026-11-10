@@ -11,3 +11,4 @@ playwright-report/
 demo/
 .remote.env
 .demo-scenarios/
+.vercel
