@@ -6,6 +6,15 @@ It works like a tough interviewer. It asks one question at a time from the persp
 
 It applies the Managing NGOs course frameworks: Ebrahim & Rangan, Ebrahim's accountability framework, Brumme & Trelstad, Daily Table, VisionSpring, Harlem Children's Zone, AKRSP, WIEGO, the Advocacy Strategy Framework, outcome harvesting, contribution analysis, collective impact, systems mapping and Meadows' leverage points. The full instructions are in [`lib/lens.ts`](lib/lens.ts).
 
+## Exports
+
+- **Report as PDF.** Once the advisor has written the NGO Strategy and Alignment Report, "Save as PDF" (under the report, or in the sidebar) opens it in a print layout with Pehtrah colours. Choose "Save as PDF" in the browser's print dialog. The report can also be saved as Markdown.
+- **Theory of change slides.** "Theory of change slides" asks the model to read the whole discussion and pull out the theory of change, then draws two 16:9 slides:
+  1. A flow diagram: problem and who it serves, then inputs, activities, outputs, short- and long-term outcomes, and impact. Arrows carry the assumptions (A1, A2…) coloured by how well the discussion supported them. Items the model had to infer are dashed and in italics.
+  2. The assumptions behind each step with their evidence, the evidence gaps, and the risks outside the organization's control.
+
+  Download them as an editable PowerPoint file (built in the browser), or save them as PDF through the print dialog. "Redraw" asks again after more discussion.
+
 ## Any LLM provider
 
 The app is built on the [AI SDK](https://ai-sdk.dev), so it isn't tied to one vendor. List the models to offer in `LENS_MODELS`, then set the credentials for each provider you use. The picker hides any model whose provider has no credentials.
@@ -105,7 +114,7 @@ REMOTE_KEY=/path/to/ssh-key.pem
 
 To run everything on your own machine instead, use the same `npm` commands directly.
 
-- `npm test`: unit tests (Vitest) for the prompt, protocol parsing, model configuration and error messages.
+- `npm test`: unit tests (Vitest) for the prompt, protocol parsing, theory-of-change parsing, model configuration and error messages.
 - `npm run e2e`: browser tests (Playwright) against the production build, with a scripted mock model (`LENS_MOCK_LLM=1`), so no API key is needed.
 
 To try it with a real model, put a provider key in `.env.local` and run `npm run dev`. On a remote machine, put `.env.local` there and open the app through an SSH tunnel: `ssh -i /path/to/ssh-key.pem -N -L 3000:127.0.0.1:3000 user@build-machine`, then browse to http://localhost:3000.
@@ -127,8 +136,12 @@ The MP4 plays in WhatsApp, email and slide decks. A fast model (Groq, Cerebras, 
 ```
 app/page.tsx            server component: reads the model list from the environment
 app/api/chat/route.ts   streams the model's reply as plain text
+app/api/toc/route.ts    extracts the theory of change as JSON for the slides
 components/LensChat.tsx the chat UI, progress map, lens picker, documents
+components/Exports.tsx  theory-of-change slides, PowerPoint export, report print layout
 lib/lens.ts             instructions, stages, lenses, protocol helpers (pure)
+lib/toc.ts              theory-of-change prompt and parsing (pure)
+lib/request.ts          shared request checks: access code, size, model
 lib/models.ts           provider registry and model allow-list
 lib/mock-model.ts       scripted model for end-to-end tests
 ```

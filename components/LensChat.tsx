@@ -8,13 +8,18 @@ import {
   cleanModelMarkdown, mergeState, readErrorMarker, readStateMarker, stripProtocol,
   type ChatTurn, type LensDocument, type ReviewState,
 } from "@/lib/lens";
+import type { TheoryOfChange } from "@/lib/toc";
+import { downloadPptx, ReportPrint, SlideStage, TocSlides } from "./Exports";
 
 type ModelOption = { id: string; label: string };
 type Failure = { message: string; partial: string; retryable: boolean };
+type Printing = { kind: "report"; text: string; lens: string } | { kind: "slides" };
+
+const isReport = (text: string) => /Strategy and Alignment Report/i.test(text);
 
 const KEY = "ngo-lens-v2";
 
-function load(): { turns: ChatTurn[]; review: ReviewState; docs: LensDocument[]; model: string; draft: string } | null {
+function load(): { turns: ChatTurn[]; review: ReviewState; docs: LensDocument[]; model: string; draft: string; toc?: TheoryOfChange | null } | null {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || "null");
     return s && Array.isArray(s.turns) ? s : null;
@@ -54,16 +59,15 @@ function BotMessage({ text, lens, children }: { text: string | null; lens?: stri
   );
 }
 
-function ReplyTools({ text }: { text: string }) {
+function ReplyTools({ text, onPdf }: { text: string; onPdf: () => void }) {
   const [copied, setCopied] = useState("Copy");
-  const isReport = /Strategy and Alignment Report/i.test(text);
   return (
     <div className="tools">
       <button className="tool" type="button" onClick={() => {
         navigator.clipboard.writeText(text).then(() => setCopied("Copied"), () => setCopied("Copy failed"));
         setTimeout(() => setCopied("Copy"), 1500);
       }}>{copied}</button>
-      {isReport ? (
+      {isReport(text) ? (
         <button className="tool" type="button" onClick={() => {
           const url = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
           const a = document.createElement("a");
@@ -71,6 +75,7 @@ function ReplyTools({ text }: { text: string }) {
           setTimeout(() => URL.revokeObjectURL(url), 1000);
         }}>Save report (.md)</button>
       ) : null}
+      {isReport(text) ? <button className="tool" type="button" onClick={onPdf}>Save as PDF</button> : null}
     </div>
   );
 }
@@ -135,6 +140,11 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
   const [needAccess, setNeedAccess] = useState(needsAccessCode);
   const [sideOpen, setSideOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [toc, setToc] = useState<TheoryOfChange | null>(null);
+  const [tocBusy, setTocBusy] = useState(false);
+  const [slidesOpen, setSlidesOpen] = useState(false);
+  const [pptxBusy, setPptxBusy] = useState(false);
+  const [printing, setPrinting] = useState<Printing | null>(null);
   const ctl = useRef<AbortController | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -148,6 +158,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
       setDocs(s.docs ?? []);
       if (models.some((m) => m.id === s.model)) setModel(s.model);
       setDraft(s.draft ?? "");
+      setToc(s.toc ?? null);
     }
     try { setAccess(sessionStorage.getItem(KEY + "-access") ?? ""); } catch {}
     setLoaded(true);
@@ -155,8 +166,25 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
 
   useEffect(() => {
     if (!loaded) return;
-    try { localStorage.setItem(KEY, JSON.stringify({ turns, review, docs, model, draft })); } catch {}
-  }, [loaded, turns, review, docs, model, draft]);
+    try { localStorage.setItem(KEY, JSON.stringify({ turns, review, docs, model, draft, toc })); } catch {}
+  }, [loaded, turns, review, docs, model, draft, toc]);
+
+  // Printing renders the export into .print-root, then opens the browser's print
+  // dialog, where "Save as PDF" writes the file.
+  useEffect(() => {
+    if (!printing) return;
+    const done = () => setPrinting(null);
+    window.addEventListener("afterprint", done, { once: true });
+    const id = requestAnimationFrame(() => window.print());
+    return () => { cancelAnimationFrame(id); window.removeEventListener("afterprint", done); };
+  }, [printing]);
+
+  useEffect(() => {
+    if (!slidesOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSlidesOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [slidesOpen]);
 
   useEffect(() => {
     const el = logRef.current;
@@ -220,6 +248,34 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
     }
   }
 
+  async function makeSlides() {
+    if (tocBusy || !canChat) return;
+    setTocBusy(true);
+    setNotice("");
+    setSideOpen(false);
+    try {
+      const res = await fetch("/api/toc", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(access ? { "x-lens-access": access } : {}) },
+        body: JSON.stringify({ model, turns: turns.map(({ role, content }) => ({ role, content })), state: review, docs }),
+      });
+      const data = await res.json().catch(() => ({ error: "The server could not be reached." }));
+      if (res.status === 401) setNeedAccess(true);
+      if (!res.ok || !data.toc) { setNotice(data.error ?? "The slides couldn't be made. Try again."); return; }
+      setToc(data.toc);
+      setSlidesOpen(true);
+    } catch {
+      setNotice("The connection dropped before the slides were ready. Try again.");
+    } finally {
+      setTocBusy(false);
+    }
+  }
+
+  function printReport(text: string) {
+    setSideOpen(false);
+    setPrinting({ kind: "report", text: text.replace(/^\s*#\s*NGO Strategy and Alignment Report\s*\n/i, ""), lens: review.lens });
+  }
+
   function send(content: string, event?: string) {
     if (!content.trim() || !canChat) return;
     const history = [...turns, { role: "user" as const, content, ...(event ? { event } : {}) }];
@@ -254,16 +310,19 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
     }
     setConfirmReset(false);
     ctl.current?.abort();
-    setTurns([]); setReview(INITIAL_STATE); setDocs([]); setFailure(null); setNotice(""); setSideOpen(false);
+    setTurns([]); setReview(INITIAL_STATE); setDocs([]); setToc(null); setFailure(null); setNotice(""); setSideOpen(false);
   }
 
   const stageIndex = Math.max(0, STAGES.findIndex((s) => s.id === review.stage));
   const last = turns[turns.length - 1];
   const unanswered = loaded && !busy && !failure && last?.role === "user";
+  const lastReport = [...turns].reverse().find((t) => t.role === "assistant" && isReport(t.content));
+  const hasTalk = turns.some((t) => t.role === "user" && !t.event);
 
   const covered = review.covered.length;
 
   return (
+    <>
     <div className="app">
       <aside className={"side" + (sideOpen ? " open" : "")} aria-label="Diagnostic map">
         <div className="side-head">
@@ -327,6 +386,17 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
             onClick={() => send("Please produce the NGO Strategy and Alignment Report now. If some areas have not been examined yet, say which ones and treat them as gaps.", "Report requested")}>
             Generate the report<small>NGO Strategy and Alignment Report</small>
           </button>
+          <div className="exports">
+            <button className="act" type="button" disabled={!canChat || !hasTalk || tocBusy} onClick={() => void makeSlides()}>
+              {tocBusy ? "Drawing the slides…" : "Theory of change slides"}
+              <small>{tocBusy ? "Reading the whole discussion" : "Flow diagram as PowerPoint or PDF"}</small>
+            </button>
+            {toc && !tocBusy ? <button className="ghost" type="button" onClick={() => { setSideOpen(false); setSlidesOpen(true); }}>Open the last slides</button> : null}
+            <button className="act" type="button" disabled={!lastReport} onClick={() => lastReport && printReport(lastReport.content)}>
+              Report as PDF
+              <small>{lastReport ? "In the print dialog, choose Save as PDF" : "Available once the report is written"}</small>
+            </button>
+          </div>
           <button className="ghost reset" type="button" onClick={reset}>
             {confirmReset ? "Click again to clear this review" : "Start a new review"}
           </button>
@@ -381,7 +451,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
                 ? t.event
                   ? <div key={i} className="msg event">{t.event}</div>
                   : <div key={i} className="msg you">{t.content}</div>
-                : <BotMessage key={i} text={t.content} lens={t.lens}><ReplyTools text={t.content} /></BotMessage>,
+                : <BotMessage key={i} text={t.content} lens={t.lens}><ReplyTools text={t.content} onPdf={() => printReport(t.content)} /></BotMessage>,
             )}
             {streaming !== null ? <BotMessage text={streaming || null} lens={review.lens} /> : null}
             {failure ? (
@@ -449,5 +519,36 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
         </div>
       </main>
     </div>
+
+    {slidesOpen && toc ? (
+      <div className="modal" role="dialog" aria-modal="true" aria-label="Theory of change slides" onClick={(e) => { if (e.target === e.currentTarget) setSlidesOpen(false); }}>
+        <div className="modal-card">
+          <div className="modal-head">
+            <h2>Theory of change slides</h2>
+            <div className="modal-actions">
+              <button className="pill solid" type="button" disabled={pptxBusy}
+                onClick={async () => { setPptxBusy(true); try { await downloadPptx(toc); } finally { setPptxBusy(false); } }}>
+                {pptxBusy ? "Building…" : "Download PowerPoint"}
+              </button>
+              <button className="pill" type="button" onClick={() => setPrinting({ kind: "slides" })}>Save as PDF</button>
+              <button className="pill" type="button" disabled={tocBusy || !canChat} onClick={() => void makeSlides()}>{tocBusy ? "Redrawing…" : "Redraw"}</button>
+              <button className="ghost" type="button" onClick={() => setSlidesOpen(false)}>Close</button>
+            </div>
+          </div>
+          <div className="modal-body">
+            <SlideStage><TocSlides toc={toc} /></SlideStage>
+          </div>
+        </div>
+      </div>
+    ) : null}
+
+    {printing ? (
+      <div className="print-root">
+        {printing.kind === "report"
+          ? <ReportPrint lens={printing.lens}><Markdown text={printing.text} /></ReportPrint>
+          : toc ? <TocSlides toc={toc} /> : null}
+      </div>
+    ) : null}
+    </>
   );
 }

@@ -113,3 +113,54 @@ test("fits a phone screen without sideways scrolling", async ({ page }) => {
   await page.getByRole("button", { name: "Map & lens" }).click();
   await expect(page.locator(".side")).toHaveClass(/open/);
 });
+
+test("theory of change slides: two slides, PowerPoint download, PDF via print", async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { printed: number }).printed = 0; window.print = () => { (window as unknown as { printed: number }).printed++; }; });
+  await page.reload();
+  const slidesBtn = page.getByRole("button", { name: /Theory of change slides/ });
+  await expect(slidesBtn).toBeDisabled();
+  await say(page, "We run girls' coding clubs in Benin City.");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await slidesBtn.click();
+  const dialog = page.getByRole("dialog", { name: "Theory of change slides" });
+  await expect(dialog.locator(".slide")).toHaveCount(2);
+  await expect(dialog.locator(".slide").first()).toContainText("How Bright Futures Coding Clubs expects change to happen");
+  await expect(dialog.locator(".tc-col li.inferred")).toContainText("More girls choose STEM subjects");
+  await expect(dialog.locator(".tc-assume li")).toHaveCount(4);
+  const download = page.waitForEvent("download");
+  await dialog.getByRole("button", { name: "Download PowerPoint" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("theory-of-change.pptx");
+  const bytes = await (await import("node:fs/promises")).readFile(await file.path());
+  expect(bytes.subarray(0, 2).toString()).toBe("PK"); // a zip, as .pptx files are
+  await dialog.getByRole("button", { name: "Save as PDF" }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
+  await expect(page.locator(".print-root .slide")).toHaveCount(2);
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator(".app")).toBeHidden();
+  await expect(page.locator(".print-root .slide").first()).toBeVisible();
+});
+
+test("a model answer that isn't a theory of change shows a message instead of slides", async ({ page }) => {
+  await say(page, "GARBLED_PLEASE tell me about us");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await page.getByRole("button", { name: /Theory of change slides/ }).click();
+  await expect(page.getByRole("status")).toContainText("couldn't be turned into slides");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("the report can be saved as a PDF through the print layout", async ({ page }) => {
+  await page.addInitScript(() => { window.print = () => {}; });
+  await page.reload();
+  await expect(page.getByRole("button", { name: /Report as PDF/ })).toBeDisabled();
+  await say(page, "Start");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await page.getByRole("button", { name: /Generate the report/ }).click();
+  await expect(page.locator(".msg.bot").nth(2)).toContainText("NGO Strategy and Alignment Report");
+  await page.locator(".msg.bot").nth(2).getByRole("button", { name: "Save as PDF" }).click();
+  const doc = page.locator(".print-root .report-print");
+  await expect(doc.locator("h1").first()).toHaveText("NGO Strategy and Alignment Report");
+  await expect(doc.locator(".rp-body")).toContainText("Organizational purpose");
+  await expect(doc.locator(".rp-body h1")).toHaveCount(0); // title not repeated
+  await expect(page.getByRole("button", { name: /Report as PDF/ })).toBeEnabled();
+});

