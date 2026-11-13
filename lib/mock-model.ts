@@ -40,6 +40,13 @@ export function reply(prompt: PromptMessage[]): string {
         { stakeholder: "School principals", power: 7, interest: 3, stance: "neutral", note: "Control rooms" },
         { stakeholder: "Girls", power: 2, interest: 9, stance: "supportive", note: "Core users" },
       ],
+      logicModel: [
+        { level: "output", statement: "120 girls complete a 12-week course", indicators: ["Completions per term"], source: "Attendance sheets", assumption: "Skills from 12 weeks are enough" },
+        { level: "impact", statement: "Young women in Edo build digital careers", indicators: [], source: "", assumption: "" },
+        { level: "outcome", statement: "Girls gain basic coding skills", indicators: ["Inferred: Share passing an end-of-course test"], source: "Inferred: Course test", assumption: "Local firms hire young women" },
+        { level: "activity", statement: "Weekly after-school clubs", indicators: ["Sessions held"], source: "Session log", assumption: "Girls keep attending" },
+        { level: "input", statement: "Two grants, coaches, laptops", indicators: [], source: "Budget", assumption: "Schools host the clubs" },
+      ],
       loops: {
         variables: [{ id: "v1", label: "Girls completing" }, { id: "v2", label: "Funder confidence" }, { id: "v3", label: "Club places" }, { id: "v4", label: "Coach workload" }, { id: "v5", label: "Session quality" }],
         links: [

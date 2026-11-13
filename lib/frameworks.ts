@@ -10,6 +10,10 @@ export type Direction = (typeof DIRECTIONS)[number];
 export type Strength = "strong" | "weak" | "absent";
 export type Stance = "supportive" | "neutral" | "resistant";
 
+export const LM_LEVELS = ["impact", "outcome", "output", "activity", "input"] as const;
+export type LmLevel = (typeof LM_LEVELS)[number];
+export type LmRow = { level: LmLevel; statement: string; indicators: string[]; source: string; assumption: string };
+
 export type Segment = { who: string; jobs: string[]; pains: string[]; gains: string[] };
 export type Frameworks = {
   organization: string;
@@ -33,6 +37,8 @@ export type Frameworks = {
   };
   accountability: { stakeholder: string; direction: Direction; mechanisms: string[]; strength: Strength }[];
   power: { stakeholder: string; power: number; interest: number; stance: Stance; note: string }[];
+  /** Logframe-style logic model, impact first. */
+  logicModel: LmRow[];
   loops: {
     variables: { id: string; label: string }[];
     links: { from: string; to: string; polarity: "+" | "-"; delay: boolean }[];
@@ -76,6 +82,7 @@ Reply with one JSON object and nothing else (no Markdown, no commentary), in exa
   },
   "accountability": [{"stakeholder": "...", "direction": "upward | downward | internal | lateral", "mechanisms": ["up to 3: reports, evaluations, participation, social audits, self-regulation..."], "strength": "strong | weak | absent"}],
   "power": [{"stakeholder": "...", "power": 0-10, "interest": 0-10, "stance": "supportive | neutral | resistant", "note": "one short phrase"}],
+  "logicModel": [{"level": "impact | outcome | output | activity | input", "statement": "what happens at this level", "indicators": ["up to 2 SMART indicators: what is counted, for whom, by when"], "source": "where the data would come from (means of verification)", "assumption": "what must hold for this level to lead to the next one up"}],
   "loops": {
     "variables": [{"id": "v1", "label": "2-4 word variable that can rise or fall, e.g. Community trust"}],
     "links": [{"from": "v1", "to": "v2", "polarity": "+ or -", "delay": true or false}],
@@ -83,6 +90,7 @@ Reply with one JSON object and nothing else (no Markdown, no commentary), in exa
     "leverage": [{"level": 1-12 (Meadows; 12 parameters ... 6 information flows, 5 rules, 3 goals, 2 paradigms), "intervention": "what the organization does or could do there", "inUse": true or false}]
   }
 }
+Give the logic model 6 to 10 rows: one impact, 2 or 3 outcomes (short and longer term), 2 or 3 outputs, 1 or 2 activities and 1 input row, in that order. Outputs are countable products; outcomes are changes in people or conditions. If the user stated no indicator or data source, propose one and start it with "Inferred:".
 Give 4 to 8 accountability rows covering upward, downward and internal; 5 to 8 power-map stakeholders; 5 to 9 causal-loop variables with 6 to 12 links forming at least one reinforcing and one balancing loop (each loop's variables must be connected in order by links); 3 to 5 leverage points, including at least one higher-leverage option (level 6 or stronger) the organization does not use yet.`;
 
 const s = (v: unknown, max = 140) => {
@@ -155,8 +163,13 @@ export function parseFrameworks(text: string): Frameworks | null {
       stakeholder: s(r.stakeholder, 40), power: num(r.power, 0, 10, 5), interest: num(r.interest, 0, 10, 5),
       stance: pick(r.stance, ["supportive", "neutral", "resistant"] as const, "neutral"), note: s(r.note, 80),
     })).filter((r) => r.stakeholder).slice(0, 8),
+    logicModel: (Array.isArray(raw.logicModel) ? raw.logicModel : []).map((r) => obj(r)).map((r) => ({
+      level: pick(r.level, LM_LEVELS, "output"), statement: s(r.statement, 160), indicators: list(r.indicators, 2),
+      source: s(r.source, 120), assumption: s(r.assumption, 160),
+    })).filter((r) => r.statement).slice(0, 10)
+      .sort((x, y) => LM_LEVELS.indexOf(x.level) - LM_LEVELS.indexOf(y.level)),
     loops: { variables, links, loops, leverage },
   };
-  const usable = fw.valueProposition.offer.length + fw.accountability.length + fw.power.length + variables.length > 0;
+  const usable = fw.valueProposition.offer.length + fw.accountability.length + fw.power.length + variables.length + fw.logicModel.length > 0;
   return usable ? fw : null;
 }

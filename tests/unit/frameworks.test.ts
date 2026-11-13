@@ -7,6 +7,7 @@ const base = {
   strategy: { type: "Integrated strategy", theoryOfChange: 140, operations: "35", rationale: "r", accountableFor: "a" },
   accountability: [{ stakeholder: "Funders", direction: "Upward (donors)", mechanisms: ["Reports"], strength: "STRONG" }],
   power: [{ stakeholder: "Funders", power: 12, interest: 6, stance: "Supportive", note: "" }],
+  logicModel: [{ level: "Outputs", statement: "500 trained" }, { level: "IMPACT", statement: "Livelihoods", indicators: ["a", "b", "c"] }, { level: "outcome", statement: "" }],
   loops: {
     variables: [{ id: "v1", label: "Trust" }, { id: "v2", label: "Uptake" }, { id: "v3", label: "Outcomes" }],
     links: [{ from: "v1", to: "v2", polarity: "+" }, { from: "v2", to: "v3", polarity: "-", delay: true }, { from: "v3", to: "v9", polarity: "+" }, { from: "v1", to: "v1", polarity: "+" }],
@@ -29,6 +30,7 @@ describe("parseFrameworks", () => {
     expect(fw.loops.loops).toEqual([{ id: "B1", type: "B", name: "n", variables: ["v1", "v2"], story: "s" }]);
     expect(fw.loops.leverage.map((l) => [l.level, l.inUse])).toEqual([[12, true], [12, false], [6, false]]);
     expect(fw.loops.leverage[2].name).toBe("Information flows");
+    expect(fw.logicModel.map((r) => [r.level, r.statement, r.indicators.length])).toEqual([["impact", "Livelihoods", 2], ["output", "500 trained", 0]]);
     expect(fw.valueProposition.payer).toEqual({ who: "Foundations", jobs: [], pains: [], gains: [] });
   });
   it("rejects replies with nothing usable", () => {

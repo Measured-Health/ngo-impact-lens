@@ -184,7 +184,7 @@ test("an area closes only after enough exchanges and a score; claims fill the le
   await expect(page.locator(".ledger li")).toContainText("Attendance sheets, no follow-up");
 });
 
-test("framework views: five slides from the discussion, saved together as PDF", async ({ page }) => {
+test("framework views: six slides from the discussion, saved together as PDF", async ({ page }) => {
   await page.addInitScript(() => { window.print = () => {}; });
   await page.reload();
   await say(page, "We run girls' coding clubs in Benin City.");
@@ -193,6 +193,11 @@ test("framework views: five slides from the discussion, saved together as PDF", 
   const dialog = page.getByRole("dialog", { name: "Framework views" });
   await expect(dialog.locator(".slide")).toContainText("Value proposition canvas");
   await expect(dialog.locator(".slide")).toContainText("Funders count graduates; girls need jobs.");
+  await dialog.getByRole("tab", { name: "Logic model" }).click();
+  await expect(dialog.locator(".lm tbody tr")).toHaveCount(5);
+  await expect(dialog.locator(".lm tbody tr").first()).toContainText("Impact"); // impact first, whatever order the model used
+  await expect(dialog.locator(".lm tbody tr").last()).toContainText("Input");
+  await expect(dialog.locator(".lm .inferred").first()).toBeVisible();
   await dialog.getByRole("tab", { name: "Strategy" }).click();
   await expect(dialog.locator(".er-type")).toHaveText("Niche strategy");
   await dialog.getByRole("tab", { name: "Accountability" }).click();
@@ -205,5 +210,5 @@ test("framework views: five slides from the discussion, saved together as PDF", 
   await expect(dialog.locator(".cl-loop")).toHaveCount(2);
   await expect(dialog.locator(".cl-lev li.open")).toContainText("Share employer hiring data");
   await dialog.getByRole("button", { name: "Save all as PDF" }).click();
-  await expect(page.locator(".print-root .slide")).toHaveCount(5);
+  await expect(page.locator(".print-root .slide")).toHaveCount(6);
 });

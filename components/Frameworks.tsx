@@ -1,6 +1,6 @@
 "use client";
 
-import type { Direction, Frameworks, Stance, StrategyType } from "@/lib/frameworks";
+import type { Direction, Frameworks, LmLevel, Stance, StrategyType } from "@/lib/frameworks";
 import { Mark } from "./Exports";
 
 // Five 1280 x 720 slides drawn from the discussion. Fixed brand colours so they
@@ -8,6 +8,7 @@ import { Mark } from "./Exports";
 
 export const FRAMEWORK_TABS = [
   { id: "value", label: "Value proposition" },
+  { id: "logic", label: "Logic model" },
   { id: "strategy", label: "Strategy" },
   { id: "accountability", label: "Accountability" },
   { id: "power", label: "Power map" },
@@ -72,6 +73,34 @@ function ValueSlide({ fw }: { fw: Frameworks }) {
         <div className="vp-tension"><b>Where the interests differ</b><p>{v.tension || "Not discussed."}</p></div>
       </div>
       <Foot note="A fit needs both sides: the offer must relieve the beneficiary's real pains, and the payer must value the same results." />
+    </section>
+  );
+}
+
+const LM_LABEL: Record<LmLevel, string> = { impact: "Impact", outcome: "Outcome", output: "Output", activity: "Activity", input: "Input" };
+
+function LogicSlide({ fw }: { fw: Frameworks }) {
+  const rows = fw.logicModel;
+  const cell = (t: string) => <span className={inferred(t) ? "inferred" : ""}>{clean(t)}</span>;
+  return (
+    <section className="slide fw" data-fw="logic">
+      <Head title="Logic model" org={fw.organization} />
+      <table className="lm">
+        <thead><tr><th>Level</th><th>What happens</th><th>Indicators</th><th>Source of evidence</th><th>Assumption to reach the level above</th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className={"lv-" + r.level}>
+              <td><span className="lm-level">{LM_LABEL[r.level]}</span></td>
+              <td>{cell(r.statement)}</td>
+              <td>{r.indicators.length ? r.indicators.map((t, j) => <div key={j}>{cell(t)}</div>) : <span className="inferred">None stated</span>}</td>
+              <td>{r.source ? cell(r.source) : <span className="inferred">None stated</span>}</td>
+              <td>{r.level === "impact" ? <span className="lm-na">Top of the chain</span> : r.assumption ? cell(r.assumption) : <span className="inferred">Not discussed</span>}</td>
+            </tr>
+          ))}
+          {rows.length === 0 ? <tr><td colSpan={5} className="inferred">No logic model could be drawn from the discussion yet.</td></tr> : null}
+        </tbody>
+      </table>
+      <Foot note="Read bottom up: if the inputs are in place and the assumption holds, the level above follows. Italic items were inferred, not stated in the discussion." />
     </section>
   );
 }
@@ -293,6 +322,7 @@ function LoopsSlide({ fw }: { fw: Frameworks }) {
 
 export function FrameworkSlide({ fw, tab }: { fw: Frameworks; tab: FrameworkTab }) {
   if (tab === "value") return <ValueSlide fw={fw} />;
+  if (tab === "logic") return <LogicSlide fw={fw} />;
   if (tab === "strategy") return <StrategySlide fw={fw} />;
   if (tab === "accountability") return <AccountabilitySlide fw={fw} />;
   if (tab === "power") return <PowerSlide fw={fw} />;
