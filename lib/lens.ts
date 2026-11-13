@@ -1,6 +1,8 @@
 // Domain content and pure helpers shared by the chat UI and the API route.
 // No provider- or framework-specific code lives here.
 
+import { KNOWLEDGE } from "./knowledge";
+
 export const AREAS = [
   "Problem & value proposition",
   "Theory of change & assumptions",
@@ -74,9 +76,12 @@ export type ChatTurn = {
   event?: string;
   /** Lens the assistant spoke from when this reply was written. */
   lens?: string;
+  /** Web pages the assistant consulted for this reply. */
+  sources?: WebSource[];
 };
 
 export type LensDocument = { name: string; text: string };
+export type WebSource = { url: string; title: string };
 
 export const INITIAL_STATE: ReviewState = { stage: "setup", current: 0, covered: [], lens: "", scores: {}, claims: [], probes: {} };
 
@@ -175,12 +180,12 @@ If the user's course uses a named value-proposition framework (for example a set
 
 SOCIAL-CHANGE STRATEGY (area 3, go deep; Managing NGOs: Ebrahim & Rangan)
 Help the user work out which strategy they actually run, what that lets them claim, and whether it fits the problem. Draw it out with questions; do not announce the answer.
-- The two questions behind the framework: How well understood and how direct is the causal path from what they do to the change they want (focused versus complex theory of change)? And how much of that path do they control themselves, one service versus several linked services (focused versus integrated operations)?
-- Niche (focused theory of change, focused operations): one well-defined intervention, e.g. VisionSpring's reading glasses. Can credibly be held to outputs and immediate outcomes. Ask: is the claimed impact further down the chain than one intervention can carry?
-- Integrated (focused theory of change, integrated operations): several linked services around the same people because their barriers are interconnected, e.g. Harlem Children's Zone's cradle-to-career pipeline. Can be held to outcomes for the people served. Ask: are the services actually linked (shared participants, data, hand-offs), or just several programs side by side? What does it cost per person, and could it survive losing one funder? Watch for mission creep dressed up as integration.
-- Institutional (complex theory of change, focused operations): one lever aimed at policies, norms or institutions, such as advocacy, research or standard-setting. Can be held to influence: policies adopted, practices changed, voice gained. Ask who must change and what kind of change it is (awareness, political will, behaviour, policy, institutional practice), as in the Advocacy Strategy Framework.
-- Ecosystem (complex theory of change, integrated operations): coordinating many actors toward population-level change, e.g. collective impact initiatives, or networks such as WIEGO combining organizing, research and policy influence. Impact can only be claimed jointly. Ask: is there a common agenda, shared measurement, mutually reinforcing activities, continuous communication and a backbone? Who is accountable when it fails? How do they show contribution rather than attribution?
-- Emergent strategy (WIEGO): strategy that forms from practice and opportunity rather than a fixed plan. Ask how they learn and adapt, and how they stop that becoming drift.
+- The two questions behind the framework: How well understood is the cause-and-effect link from what they do to the change they want (focused theory of change: linear and well understood; complex: weakly understood, many causes)? And how much of the causal chain do they take on themselves (focused operations: a specific task; complex operations: the organization absorbs other functions along the chain to gain control, like vertical integration)?
+- Niche (focused theory of change, focused operations): emergency and basic services, e.g. soup kitchens, ambulances, hotlines; a single focused product like VisionSpring's reading glasses sits close to this. Measure inputs, activities and outputs. Ask: is the claimed impact further down the chain than one task can carry?
+- Integrated (focused theory of change, complex operations): delivery across several links of a well-understood chain, e.g. Aravind Eye Hospital, job training with placement, immunization. Measure outputs and outcomes. Ask: are the links actually connected (shared participants, data, hand-offs), or several programs side by side? What does it cost per person, and could it survive losing one funder? Watch for mission creep dressed up as integration.
+- Institutional (complex theory of change, focused operations): advocacy and norm change, e.g. Amnesty, Greenpeace. Measure outputs and influence (intermediate outcomes such as policies adopted or practices changed), not impact. Ask who must change and what kind of change it is (awareness, will, action), as in the Advocacy Strategy Framework.
+- Ecosystem (complex theory of change, complex operations): multi-intervention systemic work, e.g. BRAC, Harlem Children's Zone, Oxfam, CARE; collective impact initiatives work in this space. Measure outcomes and, where control is sufficient, impacts. Ask: is there a common agenda, shared measurement, mutually reinforcing activities, continuous communication and a backbone? Who is accountable when it fails? How do they show contribution rather than attribution?
+- The quadrants are not a ladder; a niche organization is not inferior. In his 2019 book Measuring Social Change, Ebrahim revises the four to niche, integrated, emergent and ecosystem, on axes of uncertainty about cause and effect and control over outcomes. Emergent strategy (WIEGO is a course example) forms from practice and opportunity rather than a fixed plan. Ask how they learn and adapt, and how they stop that becoming drift.
 - The fit test: does what they measure match their type? A niche organization claiming population-level impact, or an ecosystem player reporting only attendance, is a mismatch to name. Ask whether a different type would fit the problem better, and what moving there would cost.
 
 SYSTEMS THINKING AND CAUSAL LOOPS (area 5, go deep)
@@ -207,7 +212,7 @@ COURSE FRAMEWORKS (Managing NGOs). Apply them; do not name-drop. Decide which on
 - Brumme & Trelstad: whether nonprofit, for-profit, B Corp, or hybrid structure best supports the mission and capital needs.
 - Daily Table: the relationship among mission, earned revenue, dignity of customers, staffing, wages, and financial sustainability.
 - VisionSpring: whether a focused, single intervention generates measurable individual and economic outcomes.
-- Harlem Children's Zone: whether interconnected barriers require an integrated, place-based, cradle-to-career strategy.
+- Harlem Children's Zone: whether interconnected barriers require a comprehensive, place-based, cradle-to-career strategy (an ecosystem strategy in Ebrahim & Rangan's terms).
 - AKRSP (Aga Khan Rural Support Programme): community ownership, participation, local institutions, distributed decision-making.
 - WIEGO: emergent strategy, advocacy, informal-worker voice, evidence, policy influence.
 - Advocacy Strategy Framework: who must change, and whether the change concerns awareness, political will, behavior, policy, or institutional practice.
@@ -239,7 +244,29 @@ export const DOC_CHAR_LIMIT = 60_000;
 export const DOCS_TOTAL_LIMIT = 150_000;
 export const HISTORY_CHAR_LIMIT = 200_000;
 
-export function buildInstructions(state: ReviewState, docs: LensDocument[]): string {
+const RESEARCH_ON = `
+
+WEB RESEARCH
+You can search the web, and you decide when. Use it for facts from outside the conversation: evidence on what works for this kind of intervention, sector statistics, the policy context in the country, comparable organizations, and how a framework is defined. Search when it would make your next question sharper or correct a misunderstanding; do not search for things only the user can know.
+- Name what you found in the text, with the organization and year ("A 2019 J-PAL review found ..."). The app lists the pages you used under your reply.
+- Keep what you found separate from what the user told you. Never present search results as facts about the user's organization.
+- Keep coaching: turn findings into questions ("Studies of similar programs found little effect on profits after a year. What makes you expect a different result?") rather than answers.
+- If the search finds nothing reliable, say so plainly.
+- When a claim in the ledger is checked against outside evidence, update its evidence field and set source to "research: <site or organization>".`;
+
+const RESEARCH_OFF = `
+
+WEB RESEARCH IS NOT AVAILABLE
+The model in use cannot search the web. If the user asks you to look something up, say so, answer from general knowledge only if you are confident, and say it is unchecked.`;
+
+const KNOWLEDGE_BLOCK = `
+
+REFERENCE KNOWLEDGE
+The following is checked reference material. Use it so you know what you are talking about: to choose the right framework, to ask sharper questions (each section has coaching questions you can adapt), and to use terms exactly as defined in the glossary. Credit authors when it helps ("Mayne's contribution analysis"). Do not recite it or lecture from it. Treat anything marked "unverified" with care and say so if you rely on it.
+
+` + KNOWLEDGE;
+
+export function buildInstructions(state: ReviewState, docs: LensDocument[], research = false): string {
   const probes = AREAS.map((a, i) => {
     const n = i + 1, p = state.probes?.[n] ?? 0, s = state.scores?.[n];
     return `${n} ${a}: ${p} exchange${p === 1 ? "" : "s"}` + (s ? `, scored evidence ${s.evidence}/4, alignment ${s.alignment}/4` : "") +
@@ -253,7 +280,7 @@ export function buildInstructions(state: ReviewState, docs: LensDocument[]): str
     "\nStage: " + state.stage +
     "\nAreas (exchanges so far):\n" + probes +
     "\nClaims ledger:\n" + ledger;
-  return RULES + page + docsBlock(docs);
+  return RULES + (research ? RESEARCH_ON : RESEARCH_OFF) + KNOWLEDGE_BLOCK + page + docsBlock(docs);
 }
 
 /** The user's documents, capped, appended to the instructions as data. */
@@ -283,11 +310,12 @@ export function trimHistory<T extends { role: string; content: string }>(turns: 
 
 const STATE_RE = /<!--\s*lens-state\s*(\{[\s\S]*?\})\s*-->/;
 const ERROR_RE = /<!--\s*lens-error\s*(\{[\s\S]*?\})\s*-->/;
+const SOURCES_RE = /<!--\s*lens-sources\s*(\[[\s\S]*?\])\s*-->/;
 
 /** Removes protocol comments, including one still being streamed. */
 export function stripProtocol(text: string): string {
   return text
-    .replace(/<!--\s*lens-(state|error)[\s\S]*?(-->|$)/g, "")
+    .replace(/<!--\s*lens-(state|error|sources)[\s\S]*?(-->|$)/g, "")
     .replace(/<!?-{0,2}$/, "")
     .trimEnd();
 }
@@ -311,6 +339,25 @@ export function readErrorMarker(text: string): string | null {
     return typeof v?.message === "string" ? v.message : "The model failed to reply.";
   } catch {
     return "The model failed to reply.";
+  }
+}
+
+/** Web sources the server appends after a researched reply; only http(s) links survive. */
+export function sourcesMarker(sources: WebSource[]): string {
+  return sources.length ? "\n<!--lens-sources " + JSON.stringify(sources).replace(/-->/g, "--\\u003e") + "-->" : "";
+}
+
+export function readSourcesMarker(text: string): WebSource[] {
+  const m = text.match(SOURCES_RE);
+  if (!m) return [];
+  try {
+    const v = JSON.parse(m[1]);
+    return (Array.isArray(v) ? v : [])
+      .filter((s) => typeof s?.url === "string" && /^https?:\/\//i.test(s.url))
+      .map((s) => ({ url: s.url.slice(0, 500), title: typeof s.title === "string" && s.title.trim() ? s.title.slice(0, 160) : new URL(s.url).hostname }))
+      .slice(0, 12);
+  } catch {
+    return [];
   }
 }
 

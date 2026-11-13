@@ -115,8 +115,10 @@ export function reply(prompt: PromptMessage[]): string {
 
 export function scriptedModel() {
   return new MockLanguageModelV4({
-    doStream: async ({ prompt }) => {
+    doStream: async ({ prompt, tools }) => {
       const text = reply(prompt as PromptMessage[]);
+      // With web research on, pretend the search found one page.
+      const searched = (tools ?? []).length > 0 && /RESEARCH_PLEASE/.test(JSON.stringify(prompt.at(-1)));
       const words = text.split(/(?<= )/);
       return {
         stream: simulateReadableStream({
@@ -125,6 +127,7 @@ export function scriptedModel() {
             { type: "text-start", id: "t" },
             ...words.map((w) => ({ type: "text-delta" as const, id: "t", delta: w })),
             { type: "text-end", id: "t" },
+            ...(searched ? [{ type: "source" as const, sourceType: "url" as const, id: "s1", url: "https://example.org/evidence-review", title: "Evidence review" }] : []),
             {
               type: "finish",
               finishReason: { unified: "stop", raw: undefined },

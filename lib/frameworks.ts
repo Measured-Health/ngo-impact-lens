@@ -30,7 +30,7 @@ export type Frameworks = {
     type: StrategyType;
     /** 0 = focused, well-understood causal theory; 100 = complex, uncertain. */
     theoryOfChange: number;
-    /** 0 = focused operations, little control of the pathway; 100 = integrated, controls much of it. */
+    /** 0 = focused operations, a specific task; 100 = complex, controls much of the causal chain. */
     operations: number;
     rationale: string;
     accountableFor: string;
@@ -76,7 +76,7 @@ Reply with one JSON object and nothing else (no Markdown, no commentary), in exa
   "strategy": {
     "type": "niche | integrated | institutional | ecosystem",
     "theoryOfChange": 0-100 (0 focused and well understood, 100 complex and uncertain),
-    "operations": 0-100 (0 focused, controls little of the causal pathway; 100 integrated, controls much of it),
+    "operations": 0-100 (0 focused on a specific task; 100 complex, takes on much of the causal chain itself),
     "rationale": "one sentence (Ebrahim & Rangan)",
     "accountableFor": "the results it can reasonably be held accountable for, one sentence"
   },

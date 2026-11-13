@@ -3,7 +3,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { createGateway, createProviderRegistry, type LanguageModel } from "ai";
+import { createGateway, createProviderRegistry, type LanguageModel, type ToolSet } from "ai";
 
 // Provider-agnostic model configuration. Models are listed in LENS_MODELS as
 // comma-separated `provider:model-id` entries, optionally `=Label`. A provider
@@ -19,6 +19,20 @@ import { createGateway, createProviderRegistry, type LanguageModel } from "ai";
 //   mock:       LENS_MOCK_LLM=1                (scripted replies, for tests only)
 
 export type ModelOption = { id: string; label: string };
+
+/**
+ * The provider's own web search tool, offered on every reply so the model can
+ * decide for itself when to look something up. Null for providers without one,
+ * or when LENS_WEB_RESEARCH=off (e.g. to control search costs).
+ */
+export function researchTools(id: string, env: Env = process.env): ToolSet | null {
+  if (env.LENS_WEB_RESEARCH === "off") return null;
+  if (id.startsWith("mock:")) return { web_search: { type: "provider", id: "mock.web_search", args: {} } as never };
+  if (id.startsWith("google:")) return { google_search: google.tools.googleSearch({}) };
+  if (id.startsWith("anthropic:")) return { web_search: anthropic.tools.webSearch_20260318({ maxUses: 5 }) };
+  if (id.startsWith("openai:")) return { web_search: openai.tools.webSearch() };
+  return null;
+}
 
 type Env = Record<string, string | undefined>;
 

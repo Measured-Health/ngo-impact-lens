@@ -212,3 +212,21 @@ test("framework views: six slides from the discussion, saved together as PDF", a
   await dialog.getByRole("button", { name: "Save all as PDF" }).click();
   await expect(page.locator(".print-root .slide")).toHaveCount(6);
 });
+
+test("the advisor can search the web on its own and lists its sources", async ({ page }) => {
+  await say(page, "RESEARCH_PLEASE what does evidence say about coding clubs?");
+  const reply = page.locator(".msg.bot").nth(1);
+  await expect(reply).toContainText("Who defines the problem");
+  await expect(reply.locator(".sources summary")).toHaveText("Searched the web: 1 source");
+  await reply.locator(".sources summary").click();
+  await expect(reply.locator('.sources a[href="https://example.org/evidence-review"]')).toHaveAttribute("rel", /noreferrer/);
+  expect(await page.content()).not.toContain("lens-sources");
+});
+
+test("the glossary tab explains terms and can be searched", async ({ page }) => {
+  await page.getByRole("tab", { name: "Glossary" }).click();
+  await page.getByRole("searchbox", { name: "Find a term" }).fill("counterfactual");
+  await expect(page.locator(".gl-item dt").first()).toHaveText("Counterfactual");
+  await page.getByRole("searchbox", { name: "Find a term" }).fill("output");
+  await expect(page.locator(".gl-item", { hasText: /^Output/ }).first()).toContainText("Not the same as: outcome");
+});

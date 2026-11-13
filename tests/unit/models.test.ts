@@ -28,3 +28,13 @@ describe("scripted mock model", () => {
     expect(() => reply(user("FAIL_PLEASE"))).toThrow();
   });
 });
+
+describe("researchTools", () => {
+  it("offers the provider's own search, and can be turned off", async () => {
+    const { researchTools } = await import("@/lib/models");
+    expect(Object.keys(researchTools("google:gemini-x", {}) ?? {})).toEqual(["google_search"]);
+    expect(Object.keys(researchTools("anthropic:claude-x", {}) ?? {})).toEqual(["web_search"]);
+    expect(researchTools("local:llama", {})).toBeNull();
+    expect(researchTools("google:gemini-x", { LENS_WEB_RESEARCH: "off" })).toBeNull();
+  });
+});

@@ -476,3 +476,21 @@ button, textarea, input, select { font: inherit; color: inherit; }
 .lm-level { font-weight: 800; font-family: var(--display); font-size: 14px; }
 .lm .inferred { font-style: italic; color: #74675F; }
 .lm .lv-impact .inferred, .lm-na { color: #CDBFB6; font-style: italic; }
+
+/* web sources under a reply */
+.sources { margin-top: 10px; font-size: .8rem; }
+.sources summary { cursor: pointer; color: var(--green-ink); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; list-style: none; background: var(--green-wash); border-radius: 999px; padding: 4px 12px; }
+.sources summary::-webkit-details-marker { display: none; }
+.sources ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.sources a { color: var(--orange-ink); font-weight: 500; }
+.sources li span { color: var(--muted); margin-left: 8px; font-size: .74rem; }
+
+/* glossary tab */
+.glossary { display: flex; flex-direction: column; gap: 10px; }
+.gl-search { border: 1px solid var(--sand); background: var(--card); border-radius: 999px; padding: 8px 14px; font-size: .84rem; }
+.glossary dl { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.gl-item { background: var(--card); border: 1px solid var(--sand); border-radius: 14px; padding: 10px 12px; }
+.gl-item dt { font-weight: 700; color: var(--ink); font-size: .86rem; }
+.gl-item dd { margin: 3px 0 0; font-size: .8rem; line-height: 1.45; color: var(--ink-body); }
+.gl-conf { display: block; margin-top: 4px; color: var(--muted); font-size: .76rem; }
+.side-tabs button { padding: 7px 6px; font-size: .8rem; }

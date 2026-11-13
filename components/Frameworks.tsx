@@ -106,10 +106,10 @@ function LogicSlide({ fw }: { fw: Frameworks }) {
 }
 
 const QUADRANT: Record<StrategyType, { title: string; measure: string }> = {
-  niche: { title: "Niche", measure: "Outputs and immediate outcomes it directly controls" },
-  integrated: { title: "Integrated", measure: "Outcomes for the people it serves across linked services" },
-  institutional: { title: "Institutional", measure: "Influence: policies, norms and institutions changed" },
-  ecosystem: { title: "Ecosystem", measure: "Long-term impact, measured jointly with partners" },
+  niche: { title: "Niche", measure: "Inputs, activities and outputs" },
+  integrated: { title: "Integrated", measure: "Outputs and outcomes" },
+  institutional: { title: "Institutional", measure: "Outputs and influence: policies and practices changed" },
+  ecosystem: { title: "Ecosystem", measure: "Outcomes and, where control is sufficient, impacts" },
 };
 
 function StrategySlide({ fw }: { fw: Frameworks }) {
@@ -127,7 +127,7 @@ function StrategySlide({ fw }: { fw: Frameworks }) {
       <div className="er">
         <svg viewBox="0 0 600 540" width="600" height="540" role="img" aria-label={`Ebrahim and Rangan matrix: ${QUADRANT[st.type].title}`}>
           {cell("institutional", 40, 40)}{cell("ecosystem", 302, 40)}{cell("niche", 40, 262)}{cell("integrated", 302, 262)}
-          <text x={300} y={512} className="er-axis" textAnchor="middle">Operational strategy: focused → integrated (control over results)</text>
+          <text x={300} y={512} className="er-axis" textAnchor="middle">Operational strategy: focused → complex (control over the causal chain)</text>
           <text x={14} y={260} className="er-axis" textAnchor="middle" transform="rotate(-90 14 260)">Theory of change: focused → complex</text>
           <circle cx={x} cy={y} r={12} className="er-dot" />
           <text x={x + (x > 420 ? -18 : 18)} y={y + 5} textAnchor={x > 420 ? "end" : "start"} className="er-label">{fw.organization}</text>

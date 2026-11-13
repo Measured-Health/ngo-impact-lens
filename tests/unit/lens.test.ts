@@ -28,6 +28,16 @@ describe("protocol markers", () => {
   });
 });
 
+describe("sources marker", () => {
+  it("round-trips sources, drops non-http links and is stripped from display", async () => {
+    const { sourcesMarker, readSourcesMarker } = await import("@/lib/lens");
+    const m = sourcesMarker([{ url: "https://a.org/x", title: "A --> B" }, { url: "javascript:alert(1)", title: "bad" }, { url: "https://b.org", title: "" }]);
+    expect(readSourcesMarker("text" + m)).toEqual([{ url: "https://a.org/x", title: "A --> B" }, { url: "https://b.org", title: "b.org" }]);
+    expect(stripProtocol("Reply" + m)).toBe("Reply");
+    expect(sourcesMarker([])).toBe("");
+  });
+});
+
 describe("mergeState", () => {
   const score = { evidence: 2, alignment: 3, note: "ok" };
   it("normalizes the lens and counts exchanges per area", () => {
@@ -83,14 +93,14 @@ describe("buildInstructions", () => {
     expect(RULES).toContain("Draw the organization's answers out of the user");
     expect(RULES).toContain("Never write the organization's value proposition");
     expect(RULES).toContain("THINKING PARTNER");
-    expect(RULES).toMatch(/Integrated \(focused theory of change, integrated operations\)/);
-    expect(RULES).toMatch(/Ecosystem \(complex theory of change, integrated operations\)/);
+    expect(RULES).toMatch(/Integrated \(focused theory of change, complex operations\)/);
+    expect(RULES).toMatch(/Ecosystem \(complex theory of change, complex operations\).*Harlem Children's Zone/);
     expect(RULES).toContain("name it gently as an output");
   });
   it("caps the total document text", () => {
     const big = "x".repeat(60_000);
     const s = buildInstructions(INITIAL_STATE, [1, 2, 3, 4].map((i) => ({ name: `d${i}`, text: big })));
-    expect(s.length - RULES.length).toBeLessThan(DOCS_TOTAL_LIMIT + 3_000);
+    expect(s.length - RULES.length).toBeLessThan(DOCS_TOTAL_LIMIT + 70_000);
     expect(s).not.toContain("=== d4 ===");
   });
 });

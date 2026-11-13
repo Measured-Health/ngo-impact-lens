@@ -5,12 +5,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   AREAS, DOC_CHAR_LIMIT, INITIAL_STATE, LENSES, MIN_PROBES, OPENING, STAGES,
-  cleanModelMarkdown, mergeState, readErrorMarker, readStateMarker, stripProtocol,
-  type ChatTurn, type LensDocument, type ReviewState,
+  cleanModelMarkdown, mergeState, readErrorMarker, readSourcesMarker, readStateMarker, stripProtocol,
+  type ChatTurn, type LensDocument, type ReviewState, type WebSource,
 } from "@/lib/lens";
 import type { Frameworks } from "@/lib/frameworks";
 import type { TheoryOfChange } from "@/lib/toc";
 import { AreaMarks, Ledger, LedgerCounts, Scorecard } from "./Evidence";
+import { Glossary } from "./Glossary";
 import { downloadPptx, ReportPrint, SlideStage, TocSlides } from "./Exports";
 import { AllFrameworkSlides, FRAMEWORK_TABS, FrameworkSlide, type FrameworkTab } from "./Frameworks";
 
@@ -59,6 +60,20 @@ function BotMessage({ text, lens, children }: { text: string | null; lens?: stri
       <div className="body">{text === null ? <div className="thinking">Thinking…</div> : <Markdown text={text} />}</div>
       {children}
     </div>
+  );
+}
+
+function Sources({ sources }: { sources?: WebSource[] }) {
+  if (!sources?.length) return null;
+  return (
+    <details className="sources">
+      <summary>Searched the web: {sources.length} source{sources.length === 1 ? "" : "s"}</summary>
+      <ol>
+        {sources.map((s) => (
+          <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer nofollow">{s.title}</a><span>{new URL(s.url).hostname.replace(/^www\./, "")}</span></li>
+        ))}
+      </ol>
+    </details>
   );
 }
 
@@ -152,7 +167,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
   const [fwBusy, setFwBusy] = useState(false);
   const [fwOpen, setFwOpen] = useState(false);
   const [fwTab, setFwTab] = useState<FrameworkTab>("value");
-  const [sideTab, setSideTab] = useState<"map" | "evidence">("map");
+  const [sideTab, setSideTab] = useState<"map" | "evidence" | "glossary">("map");
   const ctl = useRef<AbortController | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -240,7 +255,8 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
       }
       const next = mergeState(state, readStateMarker(full));
       setReview(next);
-      setTurns([...history, { role: "assistant", content: clean, lens: next.lens || undefined }]);
+      const sources = readSourcesMarker(full);
+      setTurns([...history, { role: "assistant", content: clean, lens: next.lens || undefined, ...(sources.length ? { sources } : {}) }]);
     } catch (e) {
       const clean = stripProtocol(full);
       if (controller.signal.aborted) {
@@ -369,9 +385,10 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
           <button role="tab" type="button" aria-selected={sideTab === "evidence"} onClick={() => setSideTab("evidence")}>
             Evidence{review.claims.length ? <span className="tab-n">{review.claims.length}</span> : null}
           </button>
+          <button role="tab" type="button" aria-selected={sideTab === "glossary"} onClick={() => setSideTab("glossary")}>Glossary</button>
         </div>
 
-        {sideTab === "evidence" ? (
+        {sideTab === "glossary" ? <Glossary /> : sideTab === "evidence" ? (
           <section className="evidence-tab">
             <h2 className="side-title">Claims ledger</h2>
             <p className="side-sub">Every claim the organization makes, and how well it has been backed up so far.</p>
@@ -501,6 +518,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
                   ? <div key={i} className="msg event">{t.event}</div>
                   : <div key={i} className="msg you">{t.content}</div>
                 : <BotMessage key={i} text={t.content} lens={t.lens}>
+                    <Sources sources={t.sources} />
                     {isReport(t.content) ? <div className="report-extras"><Scorecard scores={review.scores} /><Ledger claims={review.claims} full /></div> : null}
                     <ReplyTools text={t.content} onPdf={() => printReport(t.content)} />
                   </BotMessage>,
