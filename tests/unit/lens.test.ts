@@ -83,6 +83,8 @@ describe("buildInstructions", () => {
     expect(RULES).toContain("Draw the organization's answers out of the user");
     expect(RULES).toContain("Never write the organization's value proposition");
     expect(RULES).toContain("THINKING PARTNER");
+    expect(RULES).toMatch(/Integrated \(focused theory of change, integrated operations\)/);
+    expect(RULES).toMatch(/Ecosystem \(complex theory of change, integrated operations\)/);
     expect(RULES).toContain("name it gently as an output");
   });
   it("caps the total document text", () => {
