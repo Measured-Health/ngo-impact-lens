@@ -8,6 +8,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function say(page: import("@playwright/test").Page, text: string) {
+  // Wait for any reply still streaming: pressing Enter then would mean "Stop".
+  await expect(page.locator("#send")).toHaveText("Send");
   await page.locator("#box").fill(text);
   await page.locator("#box").press("Enter");
 }
@@ -24,8 +26,8 @@ test("streams a reply, hides the protocol line and updates the map", async ({ pa
   const reply = page.locator(".msg.bot").nth(1);
   await expect(reply).toContainText("Who defines the problem");
   expect(await page.content()).not.toContain("lens-state");
-  await expect(page.locator(".chain li").nth(0)).toHaveClass(/done/);
-  await expect(page.locator(".chain li").nth(1)).toHaveClass(/now/);
+  await expect(page.locator(".chain li").nth(0)).toHaveClass(/now/);
+  await expect(page.locator(".dial-copy")).toContainText("1 of 3 exchanges");
   await expect(page.getByTestId("stage")).toContainText("Diagnose");
 });
 
@@ -37,7 +39,6 @@ test("switching lens sends a request and marks the lens", async ({ page }) => {
   await expect(page.locator(".msg.bot").nth(2)).toContainText("Speaking as Board member");
   await expect(page.locator(".msg.bot").nth(2).locator(".as")).toHaveText("as Board member");
   await expect(page.locator(".lens", { hasText: "Board member" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".chain li.done")).toHaveCount(2);
 });
 
 test("the report can be saved as Markdown", async ({ page }) => {
@@ -162,5 +163,47 @@ test("the report can be saved as a PDF through the print layout", async ({ page 
   await expect(doc.locator("h1").first()).toHaveText("NGO Strategy and Alignment Report");
   await expect(doc.locator(".rp-body")).toContainText("Organizational purpose");
   await expect(doc.locator(".rp-body h1")).toHaveCount(0); // title not repeated
+  await expect(doc.locator(".scorecard")).toContainText("Not examined yet");
+  await expect(doc.locator(".ledger-annex")).toContainText("80% of girls complete the course");
   await expect(page.getByRole("button", { name: /Report as PDF/ })).toBeEnabled();
+});
+
+test("an area closes only after enough exchanges and a score; claims fill the ledger", async ({ page }) => {
+  await say(page, "We run girls' coding clubs.");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await expect(page.getByRole("tab", { name: /Evidence/ })).toContainText("1");
+  await say(page, "CLOSE_AREA too early");
+  await expect(page.locator(".msg.bot").nth(2)).toContainText("Area verdict");
+  await expect(page.locator(".chain li").nth(0)).not.toHaveClass(/done/); // two exchanges only
+  await say(page, "CLOSE_AREA now");
+  await expect(page.locator(".msg.bot").nth(3)).toContainText("Area verdict");
+  await expect(page.locator(".chain li").nth(0).locator(".area-marks")).toHaveText("E2 A3");
+  await page.getByRole("tab", { name: /Evidence/ }).click();
+  await expect(page.locator(".ledger li")).toHaveCount(1);
+  await expect(page.locator(".ledger li")).toContainText("Partly supported");
+  await expect(page.locator(".ledger li")).toContainText("Attendance sheets, no follow-up");
+});
+
+test("framework views: five slides from the discussion, saved together as PDF", async ({ page }) => {
+  await page.addInitScript(() => { window.print = () => {}; });
+  await page.reload();
+  await say(page, "We run girls' coding clubs in Benin City.");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await page.getByRole("button", { name: /Framework views/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Framework views" });
+  await expect(dialog.locator(".slide")).toContainText("Value proposition canvas");
+  await expect(dialog.locator(".slide")).toContainText("Funders count graduates; girls need jobs.");
+  await dialog.getByRole("tab", { name: "Strategy" }).click();
+  await expect(dialog.locator(".er-type")).toHaveText("Niche strategy");
+  await dialog.getByRole("tab", { name: "Accountability" }).click();
+  await expect(dialog.locator(".acc-downward")).toContainText("No mechanism");
+  await dialog.getByRole("tab", { name: "Power map" }).click();
+  await expect(dialog.locator(".pw-dot")).toHaveCount(3);
+  await dialog.getByRole("tab", { name: "Causal loops" }).click();
+  await expect(dialog.locator(".cl-var")).toHaveCount(5);
+  await expect(dialog.locator(".cl-link")).toHaveCount(6);
+  await expect(dialog.locator(".cl-loop")).toHaveCount(2);
+  await expect(dialog.locator(".cl-lev li.open")).toContainText("Share employer hiring data");
+  await dialog.getByRole("button", { name: "Save all as PDF" }).click();
+  await expect(page.locator(".print-root .slide")).toHaveCount(5);
 });

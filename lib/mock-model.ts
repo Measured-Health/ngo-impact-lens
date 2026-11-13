@@ -20,6 +20,44 @@ export function reply(prompt: PromptMessage[]): string {
   const last = textOf([...prompt].reverse().find((m) => m.role === "user")?.content);
   const lens = last.match(/perspective of: ([^.]+)\./)?.[1];
   if (/FAIL_PLEASE/.test(last)) throw new Error("Scripted provider failure");
+  if (/FRAMEWORKS EXTRACTION/.test(last)) {
+    return JSON.stringify({
+      organization: "Bright Futures Coding Clubs",
+      valueProposition: {
+        beneficiary: { who: "Girls aged 12 to 17", jobs: ["Get a first tech skill"], pains: ["No computer at home"], gains: ["A paid internship"] },
+        payer: { who: "Two foundations", jobs: ["Show impact to their boards"], pains: ["Unclear outcomes"], gains: ["Countable graduates"] },
+        offer: ["Weekly coding clubs", "Mentoring"], painRelievers: ["Laptops at school"], gainCreators: ["Demo day with employers"],
+        alternatives: ["Paid private bootcamps"], tension: "Funders count graduates; girls need jobs.",
+      },
+      strategy: { type: "niche", theoryOfChange: 30, operations: 25, rationale: "One focused intervention.", accountableFor: "Course completion and skills gained." },
+      accountability: [
+        { stakeholder: "Foundations", direction: "upward", mechanisms: ["Annual reports"], strength: "strong" },
+        { stakeholder: "Girls and parents", direction: "downward", mechanisms: [], strength: "absent" },
+        { stakeholder: "Volunteer coaches", direction: "internal", mechanisms: ["Monthly check-ins"], strength: "weak" },
+      ],
+      power: [
+        { stakeholder: "Foundations", power: 9, interest: 6, stance: "supportive", note: "Fund 100%" },
+        { stakeholder: "School principals", power: 7, interest: 3, stance: "neutral", note: "Control rooms" },
+        { stakeholder: "Girls", power: 2, interest: 9, stance: "supportive", note: "Core users" },
+      ],
+      loops: {
+        variables: [{ id: "v1", label: "Girls completing" }, { id: "v2", label: "Funder confidence" }, { id: "v3", label: "Club places" }, { id: "v4", label: "Coach workload" }, { id: "v5", label: "Session quality" }],
+        links: [
+          { from: "v1", to: "v2", polarity: "+", delay: false }, { from: "v2", to: "v3", polarity: "+", delay: true },
+          { from: "v3", to: "v1", polarity: "+", delay: false }, { from: "v3", to: "v4", polarity: "+", delay: false },
+          { from: "v4", to: "v5", polarity: "-", delay: false }, { from: "v5", to: "v1", polarity: "+", delay: true },
+        ],
+        loops: [
+          { id: "R1", type: "R", name: "Growth engine", variables: ["v1", "v2", "v3"], story: "Completions attract funding for more places." },
+          { id: "B1", type: "B", name: "Coach strain", variables: ["v3", "v4", "v5", "v1"], story: "More places overload coaches and quality falls." },
+        ],
+        leverage: [
+          { level: 12, intervention: "Add more club places", inUse: true },
+          { level: 6, intervention: "Share employer hiring data with girls", inUse: false },
+        ],
+      },
+    });
+  }
   if (/THEORY OF CHANGE EXTRACTION/.test(last)) {
     const asked = prompt.filter((m) => m.role === "user").map((m) => textOf(m.content)).join(" ");
     if (/GARBLED_PLEASE/.test(asked)) return "Sorry, here is a summary instead.";
@@ -58,8 +96,14 @@ export function reply(prompt: PromptMessage[]): string {
     const names = [...system.matchAll(/^=== (.+) ===$/gm)].map((m) => m[1]);
     return "Documents seen: " + (names.join(", ") || "none") + marker({ stage: "setup", current: 0, covered: [], lens: "" });
   }
+  if (/CLOSE_AREA/.test(last)) {
+    return "Area verdict: the value proposition holds for girls but demand is unproven. **Next, what is the causal chain?**" +
+      marker({ stage: "diagnose", current: 1, covered: [1], lens: "", scores: { 1: { evidence: 2, alignment: 3, note: "Clear need, little proof of demand." } },
+        claims: [{ id: "C1", text: "80% of girls complete the course", area: 1, status: "partial", evidence: "Attendance sheets, no follow-up", source: "user" }] });
+  }
   return "Promising start. **Who defines the problem: the organization or the community?**" +
-    marker({ stage: "diagnose", current: 2, covered: [1], lens: "" });
+    marker({ stage: "diagnose", current: 1, covered: [], lens: "",
+      claims: [{ id: "C1", text: "80% of girls complete the course", area: 1, status: "unsupported", evidence: "No data given yet", source: "user" }] });
 }
 
 export function scriptedModel() {
