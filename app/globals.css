@@ -24,8 +24,9 @@
   --text: var(--font-text), "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
 }
+/* Dark theme: follows the device unless the user picked a theme (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --orange: #FF7A2E; --orange-ink: #FF9A5C; --orange-wash: #3A1D0C;
     --green: #5BCB47; --green-ink: #7BD86A; --green-wash: #16290F;
     --ink: #FBEFE6; --ink-body: #E6D8CE; --muted: #AF9F94; --sand: #3A2A21;
@@ -36,6 +37,17 @@
     color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+    --orange: #FF7A2E; --orange-ink: #FF9A5C; --orange-wash: #3A1D0C;
+    --green: #5BCB47; --green-ink: #7BD86A; --green-wash: #16290F;
+    --ink: #FBEFE6; --ink-body: #E6D8CE; --muted: #AF9F94; --sand: #3A2A21;
+    --page: #140B06; --glass: rgba(32, 20, 13, .72); --card: #1F140E;
+    --you: #FBEFE6; --you-fg: #1C0D0A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px -12px rgba(0, 0, 0, .6);
+    --glow-a: rgba(255, 92, 0, .18); --glow-b: rgba(61, 176, 41, .08);
+    color-scheme: dark;
+  }
+:root[data-theme="light"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -494,3 +506,9 @@ button, textarea, input, select { font: inherit; color: inherit; }
 .gl-item dd { margin: 3px 0 0; font-size: .8rem; line-height: 1.45; color: var(--ink-body); }
 .gl-conf { display: block; margin-top: 4px; color: var(--muted); font-size: .76rem; }
 .side-tabs button { padding: 7px 6px; font-size: .8rem; }
+
+/* theme switch */
+.theme-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--sand); background: var(--card); color: var(--ink); cursor: pointer; }
+.theme-btn:hover { border-color: var(--orange); }
+.theme-btn svg { width: 18px; height: 18px; }
+.gl-item dd::first-letter { text-transform: uppercase; }

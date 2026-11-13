@@ -5,13 +5,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   AREAS, DOC_CHAR_LIMIT, INITIAL_STATE, LENSES, MIN_PROBES, OPENING, STAGES,
-  cleanModelMarkdown, mergeState, readErrorMarker, readSourcesMarker, readStateMarker, stripProtocol,
+  cleanModelMarkdown, hostOf, mergeState, readErrorMarker, readSourcesMarker, readStateMarker, safeSources, stripProtocol,
   type ChatTurn, type LensDocument, type ReviewState, type WebSource,
 } from "@/lib/lens";
 import type { Frameworks } from "@/lib/frameworks";
 import type { TheoryOfChange } from "@/lib/toc";
 import { AreaMarks, Ledger, LedgerCounts, Scorecard } from "./Evidence";
 import { Glossary } from "./Glossary";
+import { ThemeToggle } from "./ThemeToggle";
 import { downloadPptx, ReportPrint, SlideStage, TocSlides } from "./Exports";
 import { AllFrameworkSlides, FRAMEWORK_TABS, FrameworkSlide, type FrameworkTab } from "./Frameworks";
 
@@ -63,14 +64,15 @@ function BotMessage({ text, lens, children }: { text: string | null; lens?: stri
   );
 }
 
-function Sources({ sources }: { sources?: WebSource[] }) {
-  if (!sources?.length) return null;
+function Sources({ sources: raw }: { sources?: WebSource[] }) {
+  const sources = safeSources(raw); // replies saved in the browser are re-checked too
+  if (!sources.length) return null;
   return (
     <details className="sources">
       <summary>Searched the web: {sources.length} source{sources.length === 1 ? "" : "s"}</summary>
       <ol>
         {sources.map((s) => (
-          <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer nofollow">{s.title}</a><span>{new URL(s.url).hostname.replace(/^www\./, "")}</span></li>
+          <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer nofollow">{s.title}</a><span>{hostOf(s.url)}</span></li>
         ))}
       </ol>
     </details>
@@ -239,6 +241,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
         setFailure({ message: err.error ?? "The server returned an error.", partial: "", retryable: res.status !== 401 });
         return;
       }
+      const nonce = res.headers.get("x-lens-marker") ?? "";
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       for (;;) {
@@ -247,7 +250,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
         full += dec.decode(value, { stream: true });
         setStreaming(stripProtocol(full));
       }
-      const err = readErrorMarker(full);
+      const err = readErrorMarker(full, nonce);
       const clean = stripProtocol(full);
       if (err || !clean) {
         setFailure({ message: err ?? "No reply came back. Retry, or pick another model.", partial: clean, retryable: true });
@@ -255,7 +258,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
       }
       const next = mergeState(state, readStateMarker(full));
       setReview(next);
-      const sources = readSourcesMarker(full);
+      const sources = readSourcesMarker(full, nonce);
       setTurns([...history, { role: "assistant", content: clean, lens: next.lens || undefined, ...(sources.length ? { sources } : {}) }]);
     } catch (e) {
       const clean = stripProtocol(full);
@@ -491,6 +494,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
                 </select>
               </label>
             ) : null}
+            <ThemeToggle />
             <button className="ghost map-btn" type="button" onClick={() => setSideOpen(true)}>Map &amp; lens</button>
           </div>
         </header>

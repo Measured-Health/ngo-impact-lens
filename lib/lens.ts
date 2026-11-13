@@ -309,8 +309,8 @@ export function trimHistory<T extends { role: string; content: string }>(turns: 
 }
 
 const STATE_RE = /<!--\s*lens-state\s*(\{[\s\S]*?\})\s*-->/;
-const ERROR_RE = /<!--\s*lens-error\s*(\{[\s\S]*?\})\s*-->/;
-const SOURCES_RE = /<!--\s*lens-sources\s*(\[[\s\S]*?\])\s*-->/;
+const ERROR_RE = /<!--\s*lens-error\s*(\{[\s\S]*?\})\s*-->/g;
+const SOURCES_RE = /<!--\s*lens-sources\s*(\{[\s\S]*?\})\s*-->/g;
 
 /** Removes protocol comments, including one still being streamed. */
 export function stripProtocol(text: string): string {
@@ -331,38 +331,62 @@ export function readStateMarker(text: string): Marker | null {
   }
 }
 
-export function readErrorMarker(text: string): string | null {
-  const m = text.match(ERROR_RE);
-  if (!m) return null;
-  try {
-    const v = JSON.parse(m[1]);
-    return typeof v?.message === "string" ? v.message : "The model failed to reply.";
-  } catch {
-    return "The model failed to reply.";
-  }
+// Error and sources markers are written by the server, not the model. Each carries a
+// per-request nonce that the server sends separately (x-lens-marker header), so text
+// the model writes (perhaps steered by a pasted document) cannot fake one.
+
+const markerJson = (v: object) => JSON.stringify(v).replace(/-->/g, "--\\u003e");
+
+/** The server's own marker objects in the text whose nonce matches. */
+function serverMarkers(text: string, re: RegExp, nonce: string): Record<string, unknown>[] {
+  if (!nonce) return [];
+  return [...text.matchAll(re)].flatMap((m) => {
+    try {
+      const v = JSON.parse(m[1]);
+      return v && typeof v === "object" && v.n === nonce ? [v as Record<string, unknown>] : [];
+    } catch {
+      return [];
+    }
+  });
 }
 
-/** Web sources the server appends after a researched reply; only http(s) links survive. */
-export function sourcesMarker(sources: WebSource[]): string {
-  return sources.length ? "\n<!--lens-sources " + JSON.stringify(sources).replace(/-->/g, "--\\u003e") + "-->" : "";
+export function errorMarker(message: string, nonce: string): string {
+  return "\n<!--lens-error " + markerJson({ n: nonce, message }) + "-->";
 }
 
-export function readSourcesMarker(text: string): WebSource[] {
-  const m = text.match(SOURCES_RE);
-  if (!m) return [];
-  try {
-    const v = JSON.parse(m[1]);
-    return (Array.isArray(v) ? v : [])
-      .filter((s) => typeof s?.url === "string" && /^https?:\/\//i.test(s.url))
-      .map((s) => ({ url: s.url.slice(0, 500), title: typeof s.title === "string" && s.title.trim() ? s.title.slice(0, 160) : new URL(s.url).hostname }))
-      .slice(0, 12);
-  } catch {
-    return [];
-  }
+export function readErrorMarker(text: string, nonce: string): string | null {
+  const v = serverMarkers(text, ERROR_RE, nonce).at(-1);
+  if (!v) return null;
+  return typeof v.message === "string" ? v.message.slice(0, 400) : "The model failed to reply.";
 }
 
-export function errorMarker(message: string): string {
-  return "\n<!--lens-error " + JSON.stringify({ message }) + "-->";
+/** Keeps only well-formed http(s) links; safe on anything, including old saved replies. */
+export function safeSources(list: unknown): WebSource[] {
+  return (Array.isArray(list) ? list : []).flatMap((s) => {
+    if (!s || typeof s.url !== "string") return [];
+    try {
+      const u = new URL(s.url);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return [];
+      const title = typeof s.title === "string" && s.title.trim() ? s.title.trim().slice(0, 160) : u.hostname;
+      return [{ url: u.href.slice(0, 500), title }];
+    } catch {
+      return [];
+    }
+  }).slice(0, 12);
+}
+
+/** Web sources the server appends after a researched reply. */
+export function sourcesMarker(sources: WebSource[], nonce: string): string {
+  return sources.length ? "\n<!--lens-sources " + markerJson({ n: nonce, sources }) + "-->" : "";
+}
+
+export function readSourcesMarker(text: string, nonce: string): WebSource[] {
+  return safeSources(serverMarkers(text, SOURCES_RE, nonce).at(-1)?.sources);
+}
+
+/** Hostname for display, without throwing on a bad URL. */
+export function hostOf(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; }
 }
 
 const letters = (t: string) => t.toLowerCase().replace(/[^a-z]+/g, " ").trim();

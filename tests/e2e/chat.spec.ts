@@ -230,3 +230,17 @@ test("the glossary tab explains terms and can be searched", async ({ page }) => 
   await page.getByRole("searchbox", { name: "Find a term" }).fill("output");
   await expect(page.locator(".gl-item", { hasText: /^Output/ }).first()).toContainText("Not the same as: outcome");
 });
+
+test("the theme switch toggles dark and light and is remembered", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.reload();
+  const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const light = await bg();
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(await bg()).not.toBe(light);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByRole("button", { name: "Switch to light theme" }).click();
+  expect(await bg()).toBe(light);
+});

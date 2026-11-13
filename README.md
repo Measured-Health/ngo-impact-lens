@@ -14,11 +14,13 @@ It applies the Managing NGOs course frameworks: Ebrahim & Rangan, Ebrahim's acco
 - **Value proposition and systems thinking in depth.** Who benefits versus who pays, jobs, pains, gains, alternatives and evidence of demand; causal links, reinforcing and balancing loops, delays and Meadows' leverage points.
 - **Brainstorms.** On request, or with "Brainstorm with me", it asks for the user's ideas first, builds on them, adds options, then helps choose.
 - **Claims ledger.** Every claim the organization makes is logged with its evidence status (verified, partly supported, not yet tested, unsupported, contradicted) in the sidebar's Evidence tab, and the advisor cites claims by id when they conflict.
+- **Knows the field.** Every reply draws on a researched knowledge base (`lib/knowledge.ts`): theory of change, logic models and logframes, SMART indicators, contribution analysis, outcome harvesting, systems thinking (stocks and flows, causal loops, the iceberg, archetypes, leverage points, the Water of Systems Change), systems building, collective impact, scaling out, up and deep, Ebrahim & Rangan, Ebrahim's accountability, the Advocacy Strategy Framework, Moore's public value triangle, the Value Proposition Canvas, concept notes, and mapping methods (outcome mapping, stakeholder and systems maps, problem trees, journey maps). Written in our own words with sources credited; no passages are reproduced. A searchable **Glossary** tab defines 64 terms and the words they are confused with.
+- **Researches on its own.** With Gemini, Claude or OpenAI models, the advisor can search the web whenever it decides that outside evidence would help, and lists the pages it used under its reply. Set `LENS_WEB_RESEARCH=off` to disable (for example to control search costs).
 - **Sounds human.** Conversational, uses the field's terminology with a short gloss the first time.
 
 ## Exports
 
-- **Framework views.** Five slides drawn from the discussion: value proposition canvas, Ebrahim & Rangan strategy matrix, accountability map (upward, downward, internal, lateral), stakeholder power and interest map, and a causal loop diagram with leverage points. Save all five as PDF.
+- **Framework views.** Six slides drawn from the discussion: value proposition canvas, logic model (indicators, sources of evidence and assumptions per level), Ebrahim & Rangan strategy matrix, accountability map (upward, downward, internal, lateral), stakeholder power and interest map, and a causal loop diagram with leverage points. Save all six as PDF.
 - **Report extras.** The report carries a scorecard of the eight areas and the claims ledger as an annex, on screen and in the PDF, plus prioritised recommendations and a 90-day plan.
 - **Report as PDF.** Once the advisor has written the NGO Strategy and Alignment Report, "Save as PDF" (under the report, or in the sidebar) opens it in a print layout with Pehtrah colours. Choose "Save as PDF" in the browser's print dialog. The report can also be saved as Markdown.
 - **Theory of change slides.** "Theory of change slides" asks the model to read the whole discussion and pull out the theory of change, then draws two 16:9 slides:
@@ -153,9 +155,11 @@ components/LensChat.tsx the chat UI, progress map, lens picker, documents
 components/Exports.tsx  theory-of-change slides, PowerPoint export, report print layout
 components/Frameworks.tsx the five framework slides
 components/Evidence.tsx scorecard and claims ledger
+components/Glossary.tsx glossary tab; ThemeToggle.tsx light and dark switch
 lib/lens.ts             instructions, stages, lenses, protocol helpers (pure)
 lib/toc.ts              theory-of-change prompt and parsing (pure)
 lib/frameworks.ts       frameworks prompt and parsing (pure)
+lib/knowledge.ts        reference knowledge the advisor reads; lib/glossary.ts mirrors its glossary
 lib/request.ts          shared request checks: access code, size, model
 lib/models.ts           provider registry and model allow-list
 lib/mock-model.ts       scripted model for end-to-end tests
