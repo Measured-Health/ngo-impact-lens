@@ -6,8 +6,22 @@ It works like a tough interviewer. It asks one question at a time from the persp
 
 It applies the Managing NGOs course frameworks: Ebrahim & Rangan, Ebrahim's accountability framework, Brumme & Trelstad, Daily Table, VisionSpring, Harlem Children's Zone, AKRSP, WIEGO, the Advocacy Strategy Framework, outcome harvesting, contribution analysis, collective impact, systems mapping and Meadows' leverage points. The full instructions are in [`lib/lens.ts`](lib/lens.ts).
 
+## How the advisor works
+
+- **Coaches, doesn't answer for you.** It draws the organization's value proposition, theory of change and strategy out of the user with questions, sentence frames and examples from other organizations. It never writes them for the user during the conversation; the report and exports are where it synthesizes what the user said.
+- **Goes deep.** Each of the eight areas gets at least three exchanges, climbing from the claim to its evidence, the mechanism, the counterfactual and the consequences, before it is closed with a verdict and two scores (evidence and alignment, 0 to 4). The progress map only marks an area done once it is scored and probed enough.
+- **Catches outputs.** If someone leads with an output ("we trained 500 women"), it names it as an output and asks for the inputs behind it and the outcome it should lead to.
+- **Value proposition and systems thinking in depth.** Who benefits versus who pays, jobs, pains, gains, alternatives and evidence of demand; causal links, reinforcing and balancing loops, delays and Meadows' leverage points.
+- **Brainstorms.** On request, or with "Brainstorm with me", it asks for the user's ideas first, builds on them, adds options, then helps choose.
+- **Claims ledger.** Every claim the organization makes is logged with its evidence status (verified, partly supported, not yet tested, unsupported, contradicted) in the sidebar's Evidence tab, and the advisor cites claims by id when they conflict.
+- **Knows the field.** Every reply draws on a researched knowledge base (`lib/knowledge.ts`): theory of change, logic models and logframes, SMART indicators, contribution analysis, outcome harvesting, systems thinking (stocks and flows, causal loops, the iceberg, archetypes, leverage points, the Water of Systems Change), systems building, collective impact, scaling out, up and deep, Ebrahim & Rangan, Ebrahim's accountability, the Advocacy Strategy Framework, Moore's public value triangle, the Value Proposition Canvas, concept notes, and mapping methods (outcome mapping, stakeholder and systems maps, problem trees, journey maps). Written in our own words with sources credited; no passages are reproduced. A searchable **Glossary** tab defines 64 terms and the words they are confused with.
+- **Researches on its own.** With Gemini, Claude or OpenAI models, the advisor can search the web whenever it decides that outside evidence would help, and lists the pages it used under its reply. Set `LENS_WEB_RESEARCH=off` to disable (for example to control search costs).
+- **Sounds human.** Conversational, uses the field's terminology with a short gloss the first time.
+
 ## Exports
 
+- **Framework views.** Six slides drawn from the discussion: value proposition canvas, logic model (indicators, sources of evidence and assumptions per level), Ebrahim & Rangan strategy matrix, accountability map (upward, downward, internal, lateral), stakeholder power and interest map, and a causal loop diagram with leverage points. Save all six as PDF.
+- **Report extras.** The report carries a scorecard of the eight areas and the claims ledger as an annex, on screen and in the PDF, plus prioritised recommendations and a 90-day plan.
 - **Report as PDF.** Once the advisor has written the NGO Strategy and Alignment Report, "Save as PDF" (under the report, or in the sidebar) opens it in a print layout with Pehtrah colours. Choose "Save as PDF" in the browser's print dialog. The report can also be saved as Markdown.
 - **Theory of change slides.** "Theory of change slides" asks the model to read the whole discussion and pull out the theory of change, then draws two 16:9 slides:
   1. A flow diagram: problem and who it serves, then inputs, activities, outputs, short- and long-term outcomes, and impact. Arrows carry the assumptions (A1, A2…) coloured by how well the discussion supported them. Items the model had to infer are dashed and in italics.
@@ -136,11 +150,16 @@ The MP4 plays in WhatsApp, email and slide decks. A fast model (Groq, Cerebras, 
 ```
 app/page.tsx            server component: reads the model list from the environment
 app/api/chat/route.ts   streams the model's reply as plain text
-app/api/toc/route.ts    extracts the theory of change as JSON for the slides
+app/api/extract/route.ts extracts the theory of change or the frameworks as JSON
 components/LensChat.tsx the chat UI, progress map, lens picker, documents
 components/Exports.tsx  theory-of-change slides, PowerPoint export, report print layout
+components/Frameworks.tsx the five framework slides
+components/Evidence.tsx scorecard and claims ledger
+components/Glossary.tsx glossary tab; ThemeToggle.tsx light and dark switch
 lib/lens.ts             instructions, stages, lenses, protocol helpers (pure)
 lib/toc.ts              theory-of-change prompt and parsing (pure)
+lib/frameworks.ts       frameworks prompt and parsing (pure)
+lib/knowledge.ts        reference knowledge the advisor reads; lib/glossary.ts mirrors its glossary
 lib/request.ts          shared request checks: access code, size, model
 lib/models.ts           provider registry and model allow-list
 lib/mock-model.ts       scripted model for end-to-end tests

@@ -6,6 +6,7 @@ import { listModels, resolveModel } from "@/lib/models";
 type Body = { model?: string; turns?: ChatTurn[]; state?: ReviewState; docs?: LensDocument[] };
 export type LensRequest = {
   model: LanguageModel;
+  modelId: string;
   history: { role: "user" | "assistant"; content: string }[];
   docs: LensDocument[];
   state: ReviewState;
@@ -34,5 +35,5 @@ export async function readLensRequest(req: Request): Promise<{ error: Response }
   const docs = (Array.isArray(body.docs) ? body.docs : [])
     .filter((d) => typeof d?.name === "string" && typeof d?.text === "string")
     .map((d) => ({ name: d.name.slice(0, 200), text: d.text }));
-  return { model, history: trimHistory(turns), docs, state: { ...INITIAL_STATE, ...(body.state ?? {}) } };
+  return { model, modelId: modelId!, history: trimHistory(turns), docs, state: { ...INITIAL_STATE, ...(body.state ?? {}) } };
 }

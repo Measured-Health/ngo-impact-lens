@@ -12,11 +12,17 @@ export const metadata: Metadata = {
     "A chat advisor that stress-tests an NGO's mission, theory of change, strategy, funding model and accountability from a chosen stakeholder's perspective, then writes an alignment report.",
 };
 
+const THEME_SCRIPT = `try{var t=localStorage.getItem("lens-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${text.variable}`}>
+    <html lang="en" className={`${display.variable} ${text.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Apply a saved theme before first paint so the page never flashes the wrong one. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );
