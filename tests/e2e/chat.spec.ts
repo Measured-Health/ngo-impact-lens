@@ -258,6 +258,31 @@ test("when the chosen model is out of quota, the next one answers and stays sele
   await expect(page.locator(".note.err")).toHaveCount(0);
 });
 
+test("framework views are reused until something new is said; Redraw asks again", async ({ page }) => {
+  let calls = 0;
+  page.on("request", (r) => { if (r.url().includes("/api/extract")) calls++; });
+  await say(page, "We run girls' coding clubs in Benin City.");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  const open = () => page.getByRole("button", { name: /^Framework views/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Framework views" });
+  await open();
+  await expect(dialog.locator(".slide")).toContainText("Value proposition canvas");
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await open();
+  await expect(dialog.locator(".slide")).toContainText("Value proposition canvas");
+  expect(calls).toBe(1);
+  await dialog.getByRole("button", { name: "Redraw" }).click();
+  await expect(dialog.getByRole("button", { name: "Redraw" })).toBeEnabled();
+  expect(calls).toBe(2);
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await say(page, "Our funders are two foundations.");
+  await expect(page.locator(".msg.bot").nth(2)).toBeVisible();
+  await expect(page.locator("#send")).toHaveText("Send");
+  await open();
+  await expect(dialog.locator(".slide")).toContainText("Value proposition canvas");
+  expect(calls).toBe(3);
+});
+
 test("when web search is refused, the same model answers without it and says so", async ({ page }) => {
   const picker = page.locator("select#model");
   await picker.selectOption("mock:nosearch");

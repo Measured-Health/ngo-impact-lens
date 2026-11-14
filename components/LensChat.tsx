@@ -161,6 +161,9 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
   const [sideOpen, setSideOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [toc, setToc] = useState<TheoryOfChange | null>(null);
+  // How many turns the last slides / framework views were drawn from, so asking
+  // again with nothing new said reopens them instead of spending a model request.
+  const [drawnAt, setDrawnAt] = useState<{ toc: number; frameworks: number }>({ toc: -1, frameworks: -1 });
   const [tocBusy, setTocBusy] = useState(false);
   const [slidesOpen, setSlidesOpen] = useState(false);
   const [pptxBusy, setPptxBusy] = useState(false);
@@ -301,20 +304,24 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
     }
   }
 
-  async function makeSlides() {
+  async function makeSlides(redraw = false) {
     if (tocBusy || !canChat) return;
+    if (!redraw && toc && drawnAt.toc === turns.length) { setSideOpen(false); setSlidesOpen(true); return; }
     setTocBusy(true);
+    const at = turns.length;
     const data = await extract("toc");
     setTocBusy(false);
-    if (data) { setToc(data as TheoryOfChange); setSlidesOpen(true); }
+    if (data) { setToc(data as TheoryOfChange); setDrawnAt((d) => ({ ...d, toc: at })); setSlidesOpen(true); }
   }
 
-  async function makeFrameworks() {
+  async function makeFrameworks(redraw = false) {
     if (fwBusy || !canChat) return;
+    if (!redraw && fw && drawnAt.frameworks === turns.length) { setSideOpen(false); setFwOpen(true); return; }
     setFwBusy(true);
+    const at = turns.length;
     const data = await extract("frameworks");
     setFwBusy(false);
-    if (data) { setFw(data as Frameworks); setFwOpen(true); }
+    if (data) { setFw(data as Frameworks); setDrawnAt((d) => ({ ...d, frameworks: at })); setFwOpen(true); }
   }
 
   function printReport(text: string) {
@@ -356,7 +363,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
     }
     setConfirmReset(false);
     ctl.current?.abort();
-    setTurns([]); setReview(INITIAL_STATE); setDocs([]); setToc(null); setFw(null); setFailure(null); setNotice(""); setSideOpen(false);
+    setTurns([]); setReview(INITIAL_STATE); setDocs([]); setToc(null); setFw(null); setDrawnAt({ toc: -1, frameworks: -1 }); setFailure(null); setNotice(""); setSideOpen(false);
   }
 
   const stageIndex = Math.max(0, STAGES.findIndex((s) => s.id === review.stage));
@@ -611,7 +618,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
                 {pptxBusy ? "Building…" : "Download PowerPoint"}
               </button>
               <button className="pill" type="button" onClick={() => setPrinting({ kind: "slides" })}>Save as PDF</button>
-              <button className="pill" type="button" disabled={tocBusy || !canChat} onClick={() => void makeSlides()}>{tocBusy ? "Redrawing…" : "Redraw"}</button>
+              <button className="pill" type="button" disabled={tocBusy || !canChat} onClick={() => void makeSlides(true)}>{tocBusy ? "Redrawing…" : "Redraw"}</button>
               <button className="ghost" type="button" onClick={() => setSlidesOpen(false)}>Close</button>
             </div>
           </div>
@@ -629,7 +636,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
             <h2>Framework views</h2>
             <div className="modal-actions">
               <button className="pill solid" type="button" onClick={() => setPrinting({ kind: "frameworks" })}>Save all as PDF</button>
-              <button className="pill" type="button" disabled={fwBusy || !canChat} onClick={() => void makeFrameworks()}>{fwBusy ? "Redrawing…" : "Redraw"}</button>
+              <button className="pill" type="button" disabled={fwBusy || !canChat} onClick={() => void makeFrameworks(true)}>{fwBusy ? "Redrawing…" : "Redraw"}</button>
               <button className="ghost" type="button" onClick={() => setFwOpen(false)}>Close</button>
             </div>
           </div>
