@@ -206,3 +206,28 @@ describe("wantsResearch", () => {
     expect(mergeState(asked, { stage: "diagnose" }).researchNext).toBe("");
   });
 });
+
+describe("claim verification", () => {
+  const claim = (status: string, source: string, evidence = "") => ({ id: "C1", text: "Reached 3,000 women", area: 1, status, evidence, source });
+  const statusOf = async (c: object) => {
+    const { mergeState } = await import("@/lib/lens");
+    return mergeState(INITIAL_STATE, { stage: "diagnose", claims: [c] } as never).claims[0].status;
+  };
+  it("never marks a claim verified on the user's word alone", async () => {
+    expect(await statusOf(claim("verified", "User statement"))).toBe("untested");
+    expect(await statusOf(claim("verified", "user", "Says an external evaluation exists"))).toBe("partial");
+    expect(await statusOf(claim("verified", "inference", "Implied by the budget"))).toBe("partial");
+    expect(await statusOf(claim("partial", "user", "user statement"))).toBe("untested");
+    expect(await statusOf(claim("partial", "user", "Attendance sheets, no follow-up"))).toBe("partial");
+  });
+  it("keeps verified when the advisor saw a document or a web source", async () => {
+    expect(await statusOf(claim("verified", "document: annual-report.md", "Table 2"))).toBe("verified");
+    expect(await statusOf(claim("verified", "research: J-PAL 2019", "Review"))).toBe("verified");
+  });
+  it("tells the advisor not to flatter or state unchecked facts", async () => {
+    const { RULES } = await import("@/lib/lens");
+    expect(RULES).toContain("A user's statement is not evidence");
+    expect(RULES).toContain("Never open with praise");
+    expect(RULES).toContain("Never state a general fact about the sector");
+  });
+});
