@@ -16,14 +16,14 @@ const REPLY_TIMEOUT = 240_000;
 const DEFAULT_SCENARIO = {
   file: "ngo-impact-lens-demo",
   intro: "It opens by asking what organization we are examining.",
-  describeCaption: "1 · Describe the organization (this one is fictional).",
+  describeCaption: "Step 1: describe the organization (this one is fictional).",
   org:
     "We are Bright Futures Coding Clubs, a fictional 3-year-old NGO in Benin City, Nigeria. " +
     "We run free after-school coding clubs for girls aged 12-17 in 6 public secondary schools, about 240 girls a year. " +
     "The problem we see: very few young women from these schools go into tech jobs. " +
     "We are funded by two foundation grants and one corporate sponsor. I am the founder, preparing for a board strategy retreat.",
   lens: "Donor or foundation officer",
-  lensCaption: "2 · Choose whose eyes to see it through, here a foundation officer.",
+  lensCaption: "Step 2: choose whose eyes to see it through, here a foundation officer.",
   evidence:
     "Our evidence so far: attendance is 78% across the year, and in a survey of 2024 leavers, 31 of 90 girls said they planned to study a STEM subject. " +
     "We have no comparison group and we do not track what girls do after school. Teachers tell us confidence goes up, but we have not measured it.",
@@ -48,14 +48,16 @@ async function overlay(html, ms, full = false) {
       document.body.appendChild(el);
     }
     el.setAttribute("style", full
-      ? "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;text-align:center;background:#1d2a2f;color:#eef0ea;font:600 34px/1.3 var(--display),system-ui;padding:60px"
-      : "position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:9999;max-width:760px;background:rgba(29,42,47,.94);color:#fff;font:500 21px/1.35 var(--ui),system-ui;padding:14px 22px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);text-align:center");
+      ? "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;text-align:center;background:#1C0D0A radial-gradient(60% 50% at 85% 0%,rgba(255,92,0,.35),transparent 70%);color:#FFF6EF;font:800 44px/1.1 var(--font-display),system-ui;letter-spacing:-.03em;padding:60px"
+      : "position:fixed;left:50%;bottom:130px;transform:translateX(-50%);z-index:9999;max-width:780px;background:rgba(28,13,10,.94);color:#FFF6EF;font:500 20px/1.4 var(--font-text),system-ui;padding:14px 24px;border-radius:18px;box-shadow:0 18px 40px -12px rgba(0,0,0,.45);text-align:center;border:1px solid rgba(255,92,0,.5)");
     el.innerHTML = full ? "<div>" + html + "</div>" : html;
   }, { html, full });
   if (ms) await pause(ms);
 }
 const caption = (text, ms = 3200) => overlay(text, ms);
 const clearOverlay = () => page.evaluate(() => document.getElementById("demo-overlay")?.remove());
+
+const SUB = "<div style='font:400 21px/1.5 var(--font-text),system-ui;letter-spacing:0;margin-top:16px;opacity:.85'>";
 
 // Clicking a sidebar button scrolls the rail to it; put the progress map back in view.
 const showMap = () => page.evaluate(() => document.querySelector(".side")?.scrollTo({ top: 0, behavior: "smooth" }));
@@ -110,11 +112,11 @@ try {
   // Hide a failed reply while the recorder retries it, so viewers don't see transient model errors.
   await page.addStyleTag({ content: ".msg.bot:has(.note.err) { opacity: 0; }" });
 
-  await overlay("NGO Strategy &amp; Impact Lens<div style='font:400 22px/1.5 var(--ui),system-ui;margin-top:14px;opacity:.85'>A tough, friendly interviewer that checks whether an NGO's mission, theory of change,<br>strategy, funding and accountability fit together.</div>", 5500, true);
+  await overlay("Impact Lens" + SUB + "A coach that helps NGO leaders think: it draws out their value proposition,<br>theory of change and strategy with questions, tests the evidence, and writes it up.</div>", 6000, true);
   await clearOverlay();
 
   await caption(S.intro, 4000);
-  await caption("Left: the review stages, the 8 areas it will examine, and the stakeholder lenses.", 4500);
+  await caption("Left: the 8 areas it examines, with a dial that fills as each is tested. Top: the 5 stages.", 4500);
   await clearOverlay();
 
   await caption(S.describeCaption, 3000);
@@ -129,15 +131,18 @@ try {
   await waitForReply();
   await readReply(9000);
 
-  await caption("3 · Answer its questions. It challenges claims that lack evidence.", 3500);
+  await caption("Step 3: answer its questions. It asks for evidence and won't move on from a vague answer.", 3800);
   await clearOverlay();
   await type(S.evidence);
   await waitForReply();
   await readReply(10000);
-  await caption("The map on the left updates as areas are covered.", 3500);
+  await caption("Every claim is logged in the Evidence tab, with how well it is backed up.", 3500);
+  await page.getByRole("tab", { name: /Evidence/ }).click();
+  await pause(5000);
+  await page.getByRole("tab", { name: "Map" }).click();
   await clearOverlay();
 
-  await caption("4 · Stress-test the model with a realistic shock.", 3000);
+  await caption("Step 4: stress-test the model with a realistic shock.", 3000);
   await clearOverlay();
   await page.getByRole("button", { name: /Run a stress test/ }).click();
   await waitForReply();
@@ -146,14 +151,46 @@ try {
   await waitForReply();
   await readReply(9000);
 
-  await caption("5 · Generate the NGO Strategy and Alignment Report.", 3000);
+  await caption("Step 5: generate the NGO Strategy and Alignment Report.", 3000);
   await clearOverlay();
   await page.getByRole("button", { name: /Generate the report/ }).click();
   await waitForReply();
-  await readReply(24000);
-  await caption("Save it as Markdown, or copy it into a document for the board.", 4000);
+  await readReply(26000);
+  await caption("It ends with a scorecard, prioritised recommendations, a 90-day plan, the claims ledger and references. Save it as PDF.", 5000);
+  await clearOverlay();
 
-  await overlay("Works with Claude, GPT, Gemini, or a self-hosted model.<div style='font:400 22px/1.5 var(--ui),system-ui;margin-top:14px;opacity:.85'>Conversations stay in the user's browser.<br>Measured-Health/ngo-impact-lens</div>", 6000, true);
+  await caption("Step 6: framework views, drawn from the whole conversation.", 3000);
+  await clearOverlay();
+  for (let attempt = 1; ; attempt++) {
+    await page.getByRole("button", { name: /Framework views/ }).click();
+    const opened = await page.getByRole("dialog", { name: "Framework views" }).waitFor({ timeout: REPLY_TIMEOUT }).then(() => true).catch(() => false);
+    if (opened) break;
+    if (attempt >= 4) throw new Error("Framework views failed: " + (await page.getByRole("status").innerText().catch(() => "")));
+    console.log("retry frameworks", attempt);
+    await pause(8000 * attempt);
+  }
+  const fwd = page.getByRole("dialog", { name: "Framework views" });
+  for (const [tab, note] of [
+    ["Value proposition", "Who benefits, who pays, and what each needs."],
+    ["Logic model", "Each level with indicators, sources of evidence and assumptions."],
+    ["Strategy", "Ebrahim and Rangan: what it is fair to hold the organization accountable for."],
+    ["Accountability", "Who it answers to, and how."],
+    ["Causal loops", "The loops that drive or hold back the work, and where the leverage is."],
+  ]) {
+    await fwd.getByRole("tab", { name: tab }).click();
+    await caption(note, 6500);
+  }
+  await clearOverlay();
+  await fwd.getByRole("button", { name: "Close" }).click();
+  await caption("A glossary keeps the vocabulary precise: output, outcome and impact are not the same thing.", 3000);
+  await page.getByRole("tab", { name: "Glossary" }).click();
+  await page.getByRole("searchbox", { name: "Find a term" }).pressSequentially("outcome", { delay: 60 });
+  await pause(3500);
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await caption("Light and dark themes.", 3000);
+  await clearOverlay();
+
+  await overlay("Works with Gemini, Claude, GPT, or a self-hosted model." + SUB + "It can search the web, cites its sources, and keeps conversations in the user's browser.<br>impact-lens-mh.vercel.app</div>", 6500, true);
 } finally {
   const video = page.video();
   await context.close();
