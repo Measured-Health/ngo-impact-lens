@@ -190,7 +190,7 @@ How the pieces fit, so a new feature lands in the right place.
 
 **Keeping quality high**
 - Every change gets tests: unit tests in `tests/unit` for logic, browser tests in `tests/e2e` for what users see. The scripted mock model in `lib/mock-model.ts` lets browser tests run without an API key; add a trigger word there for any new path.
-- Before merging a change to the rules or knowledge, run two or three full conversations with a real model and read them as a demanding reviewer would: are terms used exactly, are citations real, does it ask rather than tell, does it go deep?
+- Before merging a change to the rules or knowledge, run the sample conversations in `scripts/quality/scenarios.json` with a real model (`scripts/quality/run.ts`, usage at the top of the file) and grade the transcripts against `scripts/quality/rubric.md`, as a demanding reviewer would: are terms used exactly, are citations real, does it ask rather than tell, does it go deep? Add a scenario whenever you find a new weakness.
 - Keep the voice: plain, warm, precise, no stock phrases. Keep the coaching stance: the advisor draws answers out; it does not write the organization's strategy for it.
 - Work on a branch and open a pull request; merges to `main` deploy to production.
 

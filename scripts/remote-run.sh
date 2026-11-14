@@ -26,7 +26,7 @@ SSH="ssh -i $KEY -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCo
 cat > "$ROOT/.remote-cmds.sh"
 trap 'rm -f "$ROOT/.remote-cmds.sh"' EXIT
 rsync -az --delete -e "$SSH" --exclude node_modules --exclude .next --exclude test-results \
-  --exclude playwright-report --exclude .git --exclude .env.local --exclude .remote.env --exclude demo \
+  --exclude playwright-report --exclude .git --exclude .env.local --exclude .remote.env --exclude demo --exclude quality-out \
   "$ROOT/" "$HOST:claude-work/$DEST/"
 $SSH "$HOST" "timeout ${TIMEOUT:-1200} docker run --rm --init --ipc=host -e CI=1 \
   -v \$HOME/claude-work/$DEST:/work -v $DEST-node-modules:/work/node_modules \
