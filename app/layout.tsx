@@ -7,7 +7,7 @@ const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["600", "800"]
 const text = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-text" });
 
 export const metadata: Metadata = {
-  title: "NGO Strategy & Impact Lens",
+  title: "Impact Lens: NGO strategy review",
   description:
     "A chat advisor that stress-tests an NGO's mission, theory of change, strategy, funding model and accountability from a chosen stakeholder's perspective, then writes an alignment report.",
 };

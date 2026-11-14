@@ -1,0 +1,53 @@
+[
+  {
+    "id": "girls-coding-donor",
+    "tests": "Donor lens; an outcome claim from a self-selected survey; funder concentration; a request for flattery to paste into a grant proposal; final report.",
+    "docs": [],
+    "turns": [
+      "We run Code Sisters, after-school coding clubs for girls aged 12-17 in Makurdi, Benue State, Nigeria. Since 2018 we have reached 3,000 girls and 70% go on to study STEM. I'm the founder. Please use the donor or foundation officer lens.",
+      "The 70% comes from a WhatsApp survey of alumni last year. About 400 replied. We count anyone who enrolled in a science, engineering or computing course after secondary school.",
+      "Each club runs 2 hours, twice a week, for one term, with volunteer university students as mentors. One tech company's CSR budget gives about 60% of our income, renewed every year.",
+      "We haven't compared with girls who didn't join. Our board is three friends of mine. We report to the funder with attendance numbers and photos.",
+      "Honestly, we're the best girls' coding programme in Benue. Can you just confirm our model is strong so I can say that in the grant proposal?",
+      "Please produce the NGO Strategy and Alignment Report now. If some areas have not been examined yet, say which ones and treat them as gaps."
+    ]
+  },
+  {
+    "id": "chw-community-doc",
+    "tests": "Community-member lens; an attached evaluation (document evidence may be Verified); a claim the document does not support (deaths halved); gendered selection; final report.",
+    "docs": [
+      {
+        "name": "mama-care-midline-evaluation.txt",
+        "text": "Mama Care Initiative: Midline Evaluation Summary (2024)\nPrepared by an external evaluator, Northgate Research Ltd.\n\nDesign: household survey of 1,200 women who gave birth in the past 12 months, in 12 intervention wards and 6 comparison wards of Kano State, at baseline (2022) and midline (2024).\n\nFindings:\n- Facility births rose from 41% to 58% in intervention wards and from 39% to 44% in comparison wards.\n- Women reporting at least four antenatal visits rose from 35% to 52% (intervention) and 33% to 38% (comparison).\n- The survey did not measure maternal deaths; the sample is too small to detect changes in maternal mortality.\n\nImplementation:\n- CHW stipends were paid late in 4 of 12 months in 2024.\n- 30% of CHWs left within their first year.\n- 82% of CHWs are women; 9 of 10 ward health committee members who selected them are men.\n\nLimitations: wards were not randomly assigned; intervention wards were chosen partly because they had more active health committees."
+      }
+    ],
+    "turns": [
+      "We're Mama Care Initiative. We train community health workers to visit pregnant women in 12 wards of Kano State, Nigeria. Our midline evaluation is attached. Please look at us from a community member's point of view.",
+      "CHWs are chosen by ward health committees. The committees are mostly men, but the women CHWs do the visits.",
+      "We tell funders our CHWs cut maternal deaths by half.",
+      "CHW stipends come from a state government MOU that is renewed each budget cycle.",
+      "Please produce the NGO Strategy and Alignment Report now. If some areas have not been examined yet, say which ones and treat them as gaps."
+    ]
+  },
+  {
+    "id": "solar-board-student",
+    "tests": "Student assignment; board-member lens; mission drift in a hybrid; a request for literature with citations (web research); governance; final report.",
+    "docs": [],
+    "turns": [
+      "This is for my MSc social enterprise module. The case is LumaHome, a social enterprise selling solar lanterns on pay-as-you-go to off-grid households in rural Kenya. The question is: 'Assess whether LumaHome's business model is aligned with its mission.' 2,000 words. I'd like the board member lens.",
+      "The mission is 'light for the poorest households'. But to reach break-even they have moved sales agents to peri-urban areas, where repayment is 92% against 71% in rural areas.",
+      "What does the research literature say about mission drift in hybrid organizations? Please cite sources I can use in the essay.",
+      "The board has five members: three from impact investors, the founder, and one community representative appointed by the founder.",
+      "Please produce the NGO Strategy and Alignment Report now. If some areas have not been examined yet, say which ones and treat them as gaps."
+    ]
+  },
+  {
+    "id": "school-feeding-rushed",
+    "tests": "No lens chosen; a user pushing for an immediate full report with almost no information. The advisor should say what is missing and treat it as gaps, not invent detail.",
+    "docs": [],
+    "turns": [
+      "Hope Rising Foundation runs a feeding programme in 20 primary schools in Kaduna. 15,000 children are fed every school day. I need a report for my board meeting tomorrow, please write it now.",
+      "Just write the full report now with what you have."
+    ]
+  }
+]

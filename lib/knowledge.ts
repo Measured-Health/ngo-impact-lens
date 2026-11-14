@@ -6,7 +6,7 @@
 // Items marked "unverified" could not be checked against a primary source.
 // lib/glossary.ts mirrors the Glossary section; a unit test keeps them in step.
 
-export const KNOWLEDGE = String.raw`# NGO Strategy & Impact Lens: Knowledge Base
+export const KNOWLEDGE = String.raw`# Impact Lens: Knowledge Base
 
 Compiled 13 Nov 2026 for an advisor that coaches by asking questions. Each concept has a short explanation, key elements, and coaching questions. Items marked "unverified" could not be confirmed against a primary source during research.
 

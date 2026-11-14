@@ -113,6 +113,12 @@ describe("buildInstructions", () => {
     expect(RULES).toMatch(/Integrated \(focused theory of change, complex operations\)/);
     expect(RULES).toMatch(/Ecosystem \(complex theory of change, complex operations\).*Harlem Children's Zone/);
     expect(RULES).toContain("name it gently as an output");
+    // From the graded sample conversations (scripts/quality): arithmetic, evaluation design, causation, loop polarity.
+    expect(RULES).toContain("Do arithmetic explicitly");
+    expect(RULES).toContain("Compare change with change");
+    expect(RULES).toContain("are not cause and effect");
+    expect(RULES).toContain("Get polarity right");
+    expect(RULES).toContain("Never repeat a question and its checklist");
   });
   it("puts the fixed rules and knowledge first, so providers can cache them", () => {
     const a = buildInstructions(INITIAL_STATE, [], "on");

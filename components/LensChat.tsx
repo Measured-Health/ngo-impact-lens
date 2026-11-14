@@ -123,6 +123,7 @@ function Clip() {
 }
 
 // The eight diagnostic areas as a ring: green once covered, orange for the one being probed now.
+// With labels (the welcome screen) it is a key to the areas, not progress, so nothing is marked.
 function Dial({ covered, current, size, labels = false }: { covered: number[]; current: number; size: number; labels?: boolean }) {
   const n = AREAS.length, c = 50, r = 38, gap = 7;
   const pt = (deg: number, rad = r) => [c + rad * Math.cos((deg * Math.PI) / 180), c + rad * Math.sin((deg * Math.PI) / 180)];
@@ -140,7 +141,9 @@ function Dial({ covered, current, size, labels = false }: { covered: number[]; c
           </g>
         );
       })}
-      {labels ? null : <text x={c} y={c} className="dial-n">{covered.length}</text>}
+      {labels
+        ? <text x={c} y={c} className="dial-key"><tspan x={c} dy="-1">{n}</tspan><tspan x={c} dy="8" className="dial-key-sub">areas</tspan></text>
+        : <text x={c} y={c} className="dial-n">{covered.length}</text>}
     </svg>
   );
 }
@@ -524,7 +527,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
                     <label className="pill" htmlFor="file">Attach a strategy document</label>
                   </div>
                 </div>
-                <Dial covered={[1, 2, 3]} current={4} size={240} labels />
+                <Dial covered={[]} current={0} size={240} labels />
               </section>
             ) : null}
             <BotMessage text={OPENING} />
@@ -588,13 +591,13 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
               </div>
             ) : null}
             <textarea id="box" className="box" rows={1} value={draft} aria-label="Message"
-              placeholder="Describe the organization, or answer the question above"
+              placeholder="Describe the organization, or reply"
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
               }} />
             <div className="row">
-              <label className="attach" htmlFor="file" title="Attach text documents (.txt, .md, .csv)"><Clip />Attach</label>
+              <label className="attach" htmlFor="file" title="Attach text documents (.txt, .md, .csv)" aria-label="Attach documents"><Clip /><span className="attach-lbl">Attach</span></label>
               <input id="file" type="file" accept=".txt,.md,.markdown,.csv,.json,.html,text/*" multiple hidden
                 onChange={(e) => { void attach(e.target.files); e.target.value = ""; }} />
               <span className="hint">Shift+Enter for a new line. For PDF or Word files, paste the text.</span>

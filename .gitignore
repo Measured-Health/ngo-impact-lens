@@ -12,3 +12,4 @@ demo/
 .remote.env
 .demo-scenarios/
 .vercel
+quality-out*/
