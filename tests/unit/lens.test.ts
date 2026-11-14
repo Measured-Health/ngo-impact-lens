@@ -114,6 +114,14 @@ describe("buildInstructions", () => {
     expect(RULES).toMatch(/Ecosystem \(complex theory of change, complex operations\).*Harlem Children's Zone/);
     expect(RULES).toContain("name it gently as an output");
   });
+  it("puts the fixed rules and knowledge first, so providers can cache them", () => {
+    const a = buildInstructions(INITIAL_STATE, [], true);
+    const b = buildInstructions({ ...INITIAL_STATE, lens: "Board member", probes: { 1: 2 } }, [{ name: "d", text: "x" }], true);
+    const fixed = a.indexOf("WEB RESEARCH");
+    expect(fixed).toBeGreaterThan(RULES.length + 50_000);
+    expect(b.slice(0, fixed)).toBe(a.slice(0, fixed));
+    expect(b.indexOf("=== d ===")).toBeLessThan(b.indexOf("CURRENT APP STATE"));
+  });
   it("caps the total document text", () => {
     const big = "x".repeat(60_000);
     const s = buildInstructions(INITIAL_STATE, [1, 2, 3, 4].map((i) => ({ name: `d${i}`, text: big })));

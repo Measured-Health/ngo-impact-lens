@@ -287,7 +287,10 @@ export function buildInstructions(state: ReviewState, docs: LensDocument[], rese
     "\nStage: " + state.stage +
     "\nAreas (exchanges so far):\n" + probes +
     "\nClaims ledger:\n" + ledger;
-  return RULES + (research ? RESEARCH_ON : RESEARCH_OFF) + KNOWLEDGE_BLOCK + page + docsBlock(docs);
+  // Fixed text first, then what changes per model, per document, per turn: providers
+  // that cache a repeated prompt prefix (Gemini, OpenAI) then reuse the ~23k tokens
+  // of rules and reference knowledge instead of reprocessing them on every message.
+  return RULES + KNOWLEDGE_BLOCK + (research ? RESEARCH_ON : RESEARCH_OFF) + docsBlock(docs) + page;
 }
 
 /** The user's documents, capped, appended to the instructions as data. */
