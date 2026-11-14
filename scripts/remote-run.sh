@@ -12,7 +12,8 @@
 #   npm ci || exit 1
 #   npm test || exit 1
 #   CMDS
-# TIMEOUT (seconds, default 1200) caps the run. FETCH="path ..." copies files back.
+# TIMEOUT (seconds, default 1200) caps the run. REMOTE_DEST picks another remote
+# folder (default ngo-impact-lens), so two runs can go at once. FETCH="path ..." copies files back.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 # shellcheck disable=SC1091
@@ -20,7 +21,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 HOST=${REMOTE_HOST:?set REMOTE_HOST (user@host) in .remote.env}
 KEY=${REMOTE_KEY:?set REMOTE_KEY (path to the SSH key) in .remote.env}
 IMAGE=${REMOTE_IMAGE:-mcr.microsoft.com/playwright:v1.64.1-noble}
-DEST=ngo-impact-lens
+DEST=${REMOTE_DEST:-ngo-impact-lens}
 SSH="ssh -i $KEY -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
 cat > "$ROOT/.remote-cmds.sh"
 trap 'rm -f "$ROOT/.remote-cmds.sh"' EXIT

@@ -1,5 +1,5 @@
 import "server-only";
-import { simulateReadableStream } from "ai";
+import { APICallError, simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 
 // A deterministic stand-in model for end-to-end tests (LENS_MOCK_LLM=1).
@@ -141,4 +141,15 @@ export function scriptedModel() {
       };
     },
   });
+}
+
+/** A model whose quota is always used up, for testing the fallback to the next model. */
+export function exhaustedModel() {
+  const fail = async (): Promise<never> => {
+    throw new APICallError({
+      message: "Quota exceeded", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 429, isRetryable: false,
+      responseBody: '{"error":{"status":"RESOURCE_EXHAUSTED","message":"Quota exceeded"}}',
+    });
+  };
+  return new MockLanguageModelV4({ doStream: fail, doGenerate: fail });
 }

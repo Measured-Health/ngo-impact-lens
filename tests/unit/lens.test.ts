@@ -153,3 +153,14 @@ describe("cleanModelMarkdown", () => {
     expect(cleanModelMarkdown("costs $5 and $10")).toBe("costs $5 and $10");
   });
 });
+
+describe("model switch marker", () => {
+  it("round-trips, needs the nonce, and is stripped from the text", async () => {
+    const { modelMarker, readModelMarker, stripProtocol, switchNote } = await import("@/lib/lens");
+    const m = modelMarker({ id: "google:b", label: "B", skipped: ["A"] }, "n1");
+    expect(readModelMarker(m + "Hello", "n1")).toEqual({ id: "google:b", label: "B", skipped: ["A"] });
+    expect(readModelMarker(m + "Hello", "other")).toBeNull();
+    expect(stripProtocol(m + "Hello")).toBe("Hello");
+    expect(switchNote({ id: "x", label: "B", skipped: ["A"] })).toMatch(/^A was unavailable .* so B answered/);
+  });
+});

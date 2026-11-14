@@ -478,6 +478,7 @@ button, textarea, input, select { font: inherit; color: inherit; }
 .lm .lv-impact .inferred, .lm-na { color: #CDBFB6; font-style: italic; }
 
 /* web sources under a reply */
+.model-note { margin: 10px 0 0; padding: 6px 12px; border-radius: 10px; background: var(--orange-wash); color: var(--ink-body); font-size: .8rem; }
 .sources { margin-top: 10px; font-size: .8rem; }
 .sources summary { cursor: pointer; color: var(--green-ink); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; list-style: none; background: var(--green-wash); border-radius: 999px; padding: 4px 12px; }
 .sources summary::-webkit-details-marker { display: none; }

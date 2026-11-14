@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   AREAS, DOC_CHAR_LIMIT, INITIAL_STATE, LENSES, MIN_PROBES, OPENING, STAGES,
-  cleanModelMarkdown, hostOf, mergeState, readErrorMarker, readSourcesMarker, readStateMarker, safeSources, stripProtocol,
+  cleanModelMarkdown, hostOf, mergeState, readErrorMarker, readModelMarker, readSourcesMarker, switchNote, readStateMarker, safeSources, stripProtocol,
   type ChatTurn, type LensDocument, type ReviewState, type WebSource,
 } from "@/lib/lens";
 import type { Frameworks } from "@/lib/frameworks";
@@ -259,7 +259,12 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
       const next = mergeState(state, readStateMarker(full));
       setReview(next);
       const sources = readSourcesMarker(full, nonce);
-      setTurns([...history, { role: "assistant", content: clean, lens: next.lens || undefined, ...(sources.length ? { sources } : {}) }]);
+      const switched = readModelMarker(full, nonce);
+      if (switched && models.some((m) => m.id === switched.id)) setModel(switched.id);
+      setTurns([...history, {
+        role: "assistant", content: clean, lens: next.lens || undefined,
+        ...(sources.length ? { sources } : {}), ...(switched ? { note: switchNote(switched) } : {}),
+      }]);
     } catch (e) {
       const clean = stripProtocol(full);
       if (controller.signal.aborted) {
@@ -522,6 +527,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
                   ? <div key={i} className="msg event">{t.event}</div>
                   : <div key={i} className="msg you">{t.content}</div>
                 : <BotMessage key={i} text={t.content} lens={t.lens}>
+                    {t.note ? <p className="model-note" role="note">{t.note}</p> : null}
                     <Sources sources={t.sources} />
                     {isReport(t.content) ? <div className="report-extras"><Scorecard scores={review.scores} /><Ledger claims={review.claims} full /></div> : null}
                     <ReplyTools text={t.content} onPdf={() => printReport(t.content)} />

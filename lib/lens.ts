@@ -78,6 +78,8 @@ export type ChatTurn = {
   lens?: string;
   /** Web pages the assistant consulted for this reply. */
   sources?: WebSource[];
+  /** Set when another model answered because the chosen one was unavailable. */
+  note?: string;
 };
 
 export type LensDocument = { name: string; text: string };
@@ -316,11 +318,12 @@ export function trimHistory<T extends { role: string; content: string }>(turns: 
 const STATE_RE = /<!--\s*lens-state\s*(\{[\s\S]*?\})\s*-->/;
 const ERROR_RE = /<!--\s*lens-error\s*(\{[\s\S]*?\})\s*-->/g;
 const SOURCES_RE = /<!--\s*lens-sources\s*(\{[\s\S]*?\})\s*-->/g;
+const MODEL_RE = /<!--\s*lens-model\s*(\{[\s\S]*?\})\s*-->/g;
 
 /** Removes protocol comments, including one still being streamed. */
 export function stripProtocol(text: string): string {
   return text
-    .replace(/<!--\s*lens-(state|error|sources)[\s\S]*?(-->|$)/g, "")
+    .replace(/<!--\s*lens-(state|error|sources|model)[\s\S]*?(-->|$)/g, "")
     .replace(/<!?-{0,2}$/, "")
     .trimEnd();
 }
@@ -387,6 +390,29 @@ export function sourcesMarker(sources: WebSource[], nonce: string): string {
 
 export function readSourcesMarker(text: string, nonce: string): WebSource[] {
   return safeSources(serverMarkers(text, SOURCES_RE, nonce).at(-1)?.sources);
+}
+
+export type ModelSwitch = { id: string; label: string; skipped: string[] };
+
+/** Sent before the first word when a fallback model answers instead of the chosen one. */
+export function modelMarker(m: ModelSwitch, nonce: string): string {
+  return "<!--lens-model " + markerJson({ n: nonce, ...m }) + "-->";
+}
+
+export function readModelMarker(text: string, nonce: string): ModelSwitch | null {
+  const v = serverMarkers(text, MODEL_RE, nonce).at(-1);
+  if (!v || typeof v.id !== "string") return null;
+  const str = (x: unknown) => (typeof x === "string" ? x.slice(0, 80) : "");
+  return {
+    id: v.id.slice(0, 120), label: str(v.label) || v.id.slice(0, 80),
+    skipped: (Array.isArray(v.skipped) ? v.skipped : []).map(str).filter(Boolean).slice(0, 8),
+  };
+}
+
+/** Plain-language note for the reply that a fallback model wrote. */
+export function switchNote(m: ModelSwitch): string {
+  const was = m.skipped.length === 1 ? `${m.skipped[0]} was` : `${m.skipped.join(", ")} were`;
+  return `${was} unavailable (often a used-up daily quota), so ${m.label} answered. It stays selected for the next messages.`;
 }
 
 /** Hostname for display, without throwing on a bad URL. */

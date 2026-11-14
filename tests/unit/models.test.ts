@@ -38,3 +38,16 @@ describe("researchTools", () => {
     expect(researchTools("google:gemini-x", { LENS_WEB_RESEARCH: "off" })).toBeNull();
   });
 });
+
+describe("fallbackOrder", () => {
+  const env = { LENS_MODELS: "google:a=A, google:b=B, google:c=C", GOOGLE_GENERATIVE_AI_API_KEY: "k" };
+  it("tries the chosen model first, then the others in configured order", async () => {
+    const { fallbackOrder, modelLabel } = await import("@/lib/models");
+    expect(fallbackOrder("google:b", env)).toEqual(["google:b", "google:a", "google:c"]);
+    expect(modelLabel("google:c", env)).toBe("C");
+  });
+  it("can be turned off", async () => {
+    const { fallbackOrder } = await import("@/lib/models");
+    expect(fallbackOrder("google:b", { ...env, LENS_MODEL_FALLBACK: "off" })).toEqual(["google:b"]);
+  });
+});
