@@ -36,7 +36,7 @@ function Foot({ note }: { note: string }) {
   return (
     <footer className="tc-foot">
       <span>{note}</span>
-      <span>NGO Strategy &amp; Impact Lens, {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
+      <span>Impact Lens, {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
     </footer>
   );
 }

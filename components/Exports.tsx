@@ -76,7 +76,7 @@ export function TocSlides({ toc }: { toc: TheoryOfChange }) {
         </div>
         <footer className="tc-foot">
           <span>Dashed items were inferred, not stated in the discussion. A1 to A{Math.max(1, toc.assumptions.length)} are the assumptions on the next slide.</span>
-          <span>NGO Strategy &amp; Impact Lens, {today()}</span>
+          <span>Impact Lens, {today()}</span>
         </footer>
       </section>
 
@@ -103,7 +103,7 @@ export function TocSlides({ toc }: { toc: TheoryOfChange }) {
         </div>
         <footer className="tc-foot">
           <span>Evidence reflects what the discussion supported, not an external evaluation.</span>
-          <span>NGO Strategy &amp; Impact Lens, {today()}</span>
+          <span>Impact Lens, {today()}</span>
         </footer>
       </section>
     </>
@@ -130,7 +130,7 @@ export function ReportPrint({ lens, children }: { lens: string; children: React.
       <header>
         <Mark size={34} />
         <div>
-          <p className="rp-kicker">NGO Strategy &amp; Impact Lens</p>
+          <p className="rp-kicker">Impact Lens</p>
           <h1>NGO Strategy and Alignment Report</h1>
           <p className="rp-meta">{today()}{lens ? `. Reviewed from the perspective of: ${lens}` : ""}</p>
         </div>
@@ -161,7 +161,7 @@ export async function downloadPptx(toc: TheoryOfChange) {
   };
   const footer = (s: ReturnType<typeof p.addSlide>, left: string) => {
     s.addText(left, { x: X(64), y: X(668), w: X(820), h: X(24), fontFace: font, fontSize: pt(12), color: C.muted, margin: 0 });
-    s.addText(`NGO Strategy & Impact Lens, ${today()}`, { x: X(880), y: X(668), w: X(336), h: X(24), fontFace: font, fontSize: pt(12), color: C.muted, align: "right", margin: 0 });
+    s.addText(`Impact Lens, ${today()}`, { x: X(880), y: X(668), w: X(336), h: X(24), fontFace: font, fontSize: pt(12), color: C.muted, align: "right", margin: 0 });
   };
 
   // Slide 1: the chain

@@ -80,6 +80,9 @@ button, textarea, input, select { font: inherit; color: inherit; }
 .dial .seg.done { stroke: var(--green); }
 .dial .seg.now { stroke: var(--orange); }
 .dial .dial-n { font-family: var(--display); font-weight: 800; font-size: 26px; fill: var(--ink); text-anchor: middle; dominant-baseline: central; letter-spacing: -1px; }
+.dial .dial-key { font-family: var(--display); font-weight: 800; font-size: 12px; fill: var(--ink); text-anchor: middle; letter-spacing: -.5px; }
+.dial .dial-key-sub { font-family: var(--text); font-weight: 600; font-size: 5.5px; fill: var(--muted); letter-spacing: .4px; }
+.hero .dial .seg { stroke: color-mix(in srgb, var(--orange) 38%, var(--sand)); }
 .dial .seg-num { font-family: var(--display); font-weight: 600; font-size: 7px; fill: var(--muted); text-anchor: middle; dominant-baseline: central; }
 .dial-card .dial { width: 64px; height: 64px; }
 
@@ -220,7 +223,17 @@ button, textarea, input, select { font: inherit; color: inherit; }
   .hero { grid-template-columns: minmax(0, 1fr); padding-top: 8px; }
   .hero .dial { display: none; }
   .hint { display: none; }
-  .row { justify-content: space-between; }
+  .row { justify-content: space-between; margin-top: 2px; }
+  /* Phones: keep the composer to two short rows so the conversation keeps the screen. */
+  .composer-wrap { padding-block: 2px 10px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+  .composer { padding: 8px 8px 8px 14px; border-radius: 20px; }
+  .box { padding: 4px 0; }
+  .attach { padding: 7px 9px; }
+  .attach-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .send { padding: 8px 18px; }
+  .banner { margin-bottom: 6px; padding: 8px 14px; border-radius: 14px; }
+  .banner:has(input) { padding: 6px 8px 6px 14px; flex-wrap: nowrap; }
+  .banner input { flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .thinking::before { animation: none; }

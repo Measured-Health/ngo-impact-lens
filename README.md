@@ -1,4 +1,4 @@
-# NGO Strategy & Impact Lens
+# Impact Lens
 
 A chat advisor for nonprofit founders, social-enterprise leaders, students, board members and evaluators. It checks whether an organization's mission, value proposition, theory of change, strategy, business model, accountability system and measurements fit together.
 
@@ -193,6 +193,16 @@ How the pieces fit, so a new feature lands in the right place.
 - Before merging a change to the rules or knowledge, run two or three full conversations with a real model and read them as a demanding reviewer would: are terms used exactly, are citations real, does it ask rather than tell, does it go deep?
 - Keep the voice: plain, warm, precise, no stock phrases. Keep the coaching stance: the advisor draws answers out; it does not write the organization's strategy for it.
 - Work on a branch and open a pull request; merges to `main` deploy to production.
+
+## To do
+
+Known open items, before the new features below.
+
+- [ ] **Re-record the Pehtrah demo video.** The current one predates the stricter evidence rules, so it shows two claims marked Verified on the user's word alone (`scripts/record-demo.mjs`, see Demo video).
+- [ ] **Confirm the "5 Vs" framework** against the course material it comes from, so the knowledge base matches what students are taught.
+- [ ] **Rotate the Hugging Face token** that was exposed earlier, and update it wherever it is stored.
+- [ ] **PDF and Word upload.** Attachments are text only today; users paste the text of PDF and Word files.
+- [ ] **Role-play, panel and new lenses.** Described under Future ideas.
 
 ## Future ideas
 
