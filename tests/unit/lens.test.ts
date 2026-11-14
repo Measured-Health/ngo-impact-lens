@@ -115,9 +115,9 @@ describe("buildInstructions", () => {
     expect(RULES).toContain("name it gently as an output");
   });
   it("puts the fixed rules and knowledge first, so providers can cache them", () => {
-    const a = buildInstructions(INITIAL_STATE, [], true);
-    const b = buildInstructions({ ...INITIAL_STATE, lens: "Board member", probes: { 1: 2 } }, [{ name: "d", text: "x" }], true);
-    const fixed = a.indexOf("WEB RESEARCH");
+    const a = buildInstructions(INITIAL_STATE, [], "on");
+    const b = buildInstructions({ ...INITIAL_STATE, lens: "Board member", probes: { 1: 2 } }, [{ name: "d", text: "x" }], "on");
+    const fixed = a.indexOf("\n\nWEB RESEARCH (");
     expect(fixed).toBeGreaterThan(RULES.length + 50_000);
     expect(b.slice(0, fixed)).toBe(a.slice(0, fixed));
     expect(b.indexOf("=== d ===")).toBeLessThan(b.indexOf("CURRENT APP STATE"));
@@ -170,5 +170,39 @@ describe("model switch marker", () => {
     expect(readModelMarker(m + "Hello", "other")).toBeNull();
     expect(stripProtocol(m + "Hello")).toBe("Hello");
     expect(switchNote({ id: "x", label: "B", skipped: ["A"] })).toMatch(/^A was unavailable .* so B answered/);
+  });
+});
+
+describe("switch notes", () => {
+  it("explains a skipped model, missing web research, or both", async () => {
+    const { switchNote } = await import("@/lib/lens");
+    expect(switchNote({ id: "x", label: "B", skipped: [], noResearch: true })).toMatch(/^Web research was unavailable/);
+    const both = switchNote({ id: "x", label: "B", skipped: ["A"], noResearch: true });
+    expect(both).toMatch(/A was unavailable/);
+    expect(both).toMatch(/Web research was unavailable/);
+  });
+});
+
+describe("wantsResearch", () => {
+  it("spots requests for outside facts, not ordinary answers", async () => {
+    const { wantsResearch } = await import("@/lib/lens");
+    for (const t of ["Can you look this up?", "What does the evidence say about cash transfers?", "Find some studies on this", "Any statistics on girls' enrolment in Benue?", "search for similar NGOs"]) {
+      expect(wantsResearch(t), t).toBe(true);
+    }
+    for (const t of ["We run coding clubs for girls in Lagos.", "Our funders are two foundations.", "We do research with communities before we start."]) {
+      expect(wantsResearch(t), t).toBe(false);
+    }
+  });
+  it("tells the model how search works in each mode", async () => {
+    const { buildInstructions } = await import("@/lib/lens");
+    expect(buildInstructions(INITIAL_STATE, [], "on")).toContain("WEB RESEARCH (ON FOR THIS REPLY)");
+    expect(buildInstructions(INITIAL_STATE, [], "available")).toContain('add "research":');
+    expect(buildInstructions(INITIAL_STATE, [])).toContain("WEB RESEARCH IS NOT AVAILABLE");
+  });
+  it("keeps the advisor's research request for one reply only", async () => {
+    const { mergeState } = await import("@/lib/lens");
+    const asked = mergeState(INITIAL_STATE, { stage: "diagnose", research: "evidence on clubs" } as never);
+    expect(asked.researchNext).toBe("evidence on clubs");
+    expect(mergeState(asked, { stage: "diagnose" }).researchNext).toBe("");
   });
 });

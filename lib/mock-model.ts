@@ -103,6 +103,10 @@ export function reply(prompt: PromptMessage[]): string {
     const names = [...system.matchAll(/^=== (.+) ===$/gm)].map((m) => m[1]);
     return "Documents seen: " + (names.join(", ") || "none") + marker({ stage: "setup", current: 0, covered: [], lens: "" });
   }
+  if (/NEED_EVIDENCE/.test(last)) {
+    return "I'll check the evidence on girls' coding clubs. **Meanwhile, who decides who joins?**" +
+      marker({ stage: "diagnose", current: 1, covered: [], lens: "", research: "evidence on girls' coding clubs" });
+  }
   if (/CLOSE_AREA/.test(last)) {
     return "Area verdict: the value proposition holds for girls but demand is unproven. **Next, what is the causal chain?**" +
       marker({ stage: "diagnose", current: 1, covered: [1], lens: "", scores: { 1: { evidence: 2, alignment: 3, note: "Clear need, little proof of demand." } },
@@ -143,13 +147,24 @@ export function scriptedModel() {
   });
 }
 
+const quotaError = () => new APICallError({
+  message: "Quota exceeded", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 429, isRetryable: false,
+  responseBody: '{"error":{"status":"RESOURCE_EXHAUSTED","message":"Quota exceeded"}}',
+});
+
 /** A model whose quota is always used up, for testing the fallback to the next model. */
 export function exhaustedModel() {
-  const fail = async (): Promise<never> => {
-    throw new APICallError({
-      message: "Quota exceeded", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 429, isRetryable: false,
-      responseBody: '{"error":{"status":"RESOURCE_EXHAUSTED","message":"Quota exceeded"}}',
-    });
-  };
+  const fail = async (): Promise<never> => { throw quotaError(); };
   return new MockLanguageModelV4({ doStream: fail, doGenerate: fail });
+}
+
+/** Answers normally but refuses any request that includes web search, like a free key with no search allowance. */
+export function noSearchModel() {
+  const inner = scriptedModel();
+  return new MockLanguageModelV4({
+    doStream: async (options) => {
+      if ((options.tools ?? []).length) throw quotaError();
+      return inner.doStream(options);
+    },
+  });
 }

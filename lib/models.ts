@@ -17,7 +17,8 @@ import { createGateway, createProviderRegistry, type LanguageModel, type ToolSet
 //   local:      LOCAL_LLM_BASE_URL [+ LOCAL_LLM_API_KEY]
 //               any OpenAI-compatible server: Ollama, vLLM, LM Studio, Groq, Together, OpenRouter…
 //   mock:       LENS_MOCK_LLM=1                (scripted replies, for tests only;
-//                                               mock:exhausted always fails with a quota error)
+//                                               mock:exhausted always fails with a quota error;
+//                                               mock:nosearch refuses requests that include web search)
 
 export type ModelOption = { id: string; label: string };
 
@@ -102,8 +103,8 @@ function buildRegistry() {
 export async function resolveModel(id: string): Promise<LanguageModel | null> {
   if (!listModels().some((m) => m.id === id)) return null;
   if (id.startsWith("mock:")) {
-    const { exhaustedModel, scriptedModel } = await import("./mock-model");
-    return id === "mock:exhausted" ? exhaustedModel() : scriptedModel();
+    const { exhaustedModel, noSearchModel, scriptedModel } = await import("./mock-model");
+    return id === "mock:exhausted" ? exhaustedModel() : id === "mock:nosearch" ? noSearchModel() : scriptedModel();
   }
   registry ??= buildRegistry();
   return registry.languageModel(id as never);
