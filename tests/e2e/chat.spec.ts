@@ -257,3 +257,14 @@ test("when the chosen model is out of quota, the next one answers and stays sele
   await expect(picker).toHaveValue("mock:scripted");
   await expect(page.locator(".note.err")).toHaveCount(0);
 });
+
+test("when web search is refused, the same model answers without it and says so", async ({ page }) => {
+  const picker = page.locator("select#model");
+  await picker.selectOption("mock:nosearch");
+  await say(page, "We run coding clubs for girls in Lagos.");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await expect(page.locator(".model-note")).toContainText("Web research was unavailable for this reply");
+  await expect(page.locator(".model-note")).not.toContainText("answered");
+  await expect(picker).toHaveValue("mock:nosearch");
+  await expect(page.locator(".note.err")).toHaveCount(0);
+});

@@ -164,3 +164,13 @@ describe("model switch marker", () => {
     expect(switchNote({ id: "x", label: "B", skipped: ["A"] })).toMatch(/^A was unavailable .* so B answered/);
   });
 });
+
+describe("switch notes", () => {
+  it("explains a skipped model, missing web research, or both", async () => {
+    const { switchNote } = await import("@/lib/lens");
+    expect(switchNote({ id: "x", label: "B", skipped: [], noResearch: true })).toMatch(/^Web research was unavailable/);
+    const both = switchNote({ id: "x", label: "B", skipped: ["A"], noResearch: true });
+    expect(both).toMatch(/A was unavailable/);
+    expect(both).toMatch(/Web research was unavailable/);
+  });
+});

@@ -29,8 +29,8 @@ export async function POST(req: Request) {
       try {
         const { error } = await streamWithFallback(
           candidates,
-          ({ id, model, last }) => {
-            const tools = researchTools(id);
+          ({ id, model, research, last }) => {
+            const tools = research ? researchTools(id) : null;
             return streamText({
               model,
               instructions: buildInstructions(state, docs, Boolean(tools)),
@@ -43,7 +43,10 @@ export async function POST(req: Request) {
           },
           (part, attempt, skipped) => {
             if (part.type === "text-delta") {
-              if (!announced && skipped.length) controller.enqueue(enc.encode(modelMarker({ id: attempt.id, label: attempt.label, skipped }, nonce)));
+              const noResearch = !attempt.research && researchTools(attempt.id) !== null;
+              if (!announced && (skipped.length || noResearch)) {
+                controller.enqueue(enc.encode(modelMarker({ id: attempt.id, label: attempt.label, skipped, noResearch }, nonce)));
+              }
               announced = true;
               controller.enqueue(enc.encode(part.text));
             } else if (part.type === "source" && part.sourceType === "url" && !sources.some((s) => s.url === part.url)) {
@@ -51,6 +54,7 @@ export async function POST(req: Request) {
             }
           },
           req.signal,
+          (id) => researchTools(id) !== null,
         );
         if (error && !req.signal.aborted) controller.enqueue(enc.encode(errorMarker(describe(error), nonce)));
       } catch (e) {

@@ -259,7 +259,7 @@ You can search the web, and you decide when. Use it for facts from outside the c
 const RESEARCH_OFF = `
 
 WEB RESEARCH IS NOT AVAILABLE
-The model in use cannot search the web. If the user asks you to look something up, say so, answer from general knowledge only if you are confident, and say it is unchecked.`;
+Web search is not available for this reply. If the user asks you to look something up, say so, answer from general knowledge only if you are confident, and say it is unchecked.`;
 
 const KNOWLEDGE_BLOCK = `
 
@@ -392,7 +392,7 @@ export function readSourcesMarker(text: string, nonce: string): WebSource[] {
   return safeSources(serverMarkers(text, SOURCES_RE, nonce).at(-1)?.sources);
 }
 
-export type ModelSwitch = { id: string; label: string; skipped: string[] };
+export type ModelSwitch = { id: string; label: string; skipped: string[]; noResearch?: boolean };
 
 /** Sent before the first word when a fallback model answers instead of the chosen one. */
 export function modelMarker(m: ModelSwitch, nonce: string): string {
@@ -406,13 +406,19 @@ export function readModelMarker(text: string, nonce: string): ModelSwitch | null
   return {
     id: v.id.slice(0, 120), label: str(v.label) || v.id.slice(0, 80),
     skipped: (Array.isArray(v.skipped) ? v.skipped : []).map(str).filter(Boolean).slice(0, 8),
+    ...(v.noResearch === true ? { noResearch: true } : {}),
   };
 }
 
 /** Plain-language note for the reply that a fallback model wrote. */
 export function switchNote(m: ModelSwitch): string {
-  const was = m.skipped.length === 1 ? `${m.skipped[0]} was` : `${m.skipped.join(", ")} were`;
-  return `${was} unavailable (often a used-up daily quota), so ${m.label} answered. It stays selected for the next messages.`;
+  const notes: string[] = [];
+  if (m.skipped.length) {
+    const was = m.skipped.length === 1 ? `${m.skipped[0]} was` : `${m.skipped.join(", ")} were`;
+    notes.push(`${was} unavailable (often a used-up daily quota), so ${m.label} answered. It stays selected for the next messages.`);
+  }
+  if (m.noResearch) notes.push("Web research was unavailable for this reply (the search allowance may be used up), so it draws only on the advisor's own reference knowledge.");
+  return notes.join(" ");
 }
 
 /** Hostname for display, without throwing on a bad URL. */

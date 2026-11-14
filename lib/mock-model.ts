@@ -143,13 +143,24 @@ export function scriptedModel() {
   });
 }
 
+const quotaError = () => new APICallError({
+  message: "Quota exceeded", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 429, isRetryable: false,
+  responseBody: '{"error":{"status":"RESOURCE_EXHAUSTED","message":"Quota exceeded"}}',
+});
+
 /** A model whose quota is always used up, for testing the fallback to the next model. */
 export function exhaustedModel() {
-  const fail = async (): Promise<never> => {
-    throw new APICallError({
-      message: "Quota exceeded", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 429, isRetryable: false,
-      responseBody: '{"error":{"status":"RESOURCE_EXHAUSTED","message":"Quota exceeded"}}',
-    });
-  };
+  const fail = async (): Promise<never> => { throw quotaError(); };
   return new MockLanguageModelV4({ doStream: fail, doGenerate: fail });
+}
+
+/** Answers normally but refuses any request that includes web search, like a free key with no search allowance. */
+export function noSearchModel() {
+  const inner = scriptedModel();
+  return new MockLanguageModelV4({
+    doStream: async (options) => {
+      if ((options.tools ?? []).length) throw quotaError();
+      return inner.doStream(options);
+    },
+  });
 }
