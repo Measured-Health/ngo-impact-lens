@@ -260,7 +260,7 @@ export function LensChat({ models, needsAccessCode }: { models: ModelOption[]; n
       setReview(next);
       const sources = readSourcesMarker(full, nonce);
       const switched = readModelMarker(full, nonce);
-      if (switched && models.some((m) => m.id === switched.id)) setModel(switched.id);
+      if (switched?.skipped.length && models.some((m) => m.id === switched.id)) setModel(switched.id);
       setTurns([...history, {
         role: "assistant", content: clean, lens: next.lens || undefined,
         ...(sources.length ? { sources } : {}), ...(switched ? { note: switchNote(switched) } : {}),

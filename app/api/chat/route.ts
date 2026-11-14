@@ -1,6 +1,6 @@
-import { buildInstructions, errorMarker, modelMarker, OPENING, sourcesMarker, type WebSource } from "@/lib/lens";
+import { buildInstructions, errorMarker, modelMarker, OPENING, sourcesMarker, wantsResearch, type WebSource } from "@/lib/lens";
 import { streamText } from "ai";
-import { streamWithFallback } from "@/lib/fallback";
+import { searchPaused, streamWithFallback } from "@/lib/fallback";
 import { researchTools } from "@/lib/models";
 import { readLensRequest } from "@/lib/request";
 import { describe } from "@/lib/provider-errors";
@@ -15,6 +15,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "Send a message first." }, { status: 400 });
   }
   const messages = [{ role: "assistant" as const, content: OPENING }, ...history];
+  // Web search is off by default. It is on for this reply when the user asks for
+  // outside facts or the advisor asked for it last time (LENS_WEB_RESEARCH=always
+  // keeps it on; =off removes it).
+  const wanted = process.env.LENS_WEB_RESEARCH === "always" || wantsResearch(history[history.length - 1].content) || Boolean(state.researchNext);
+  const canSearch = (id: string) => researchTools(id) !== null;
 
   // Plain text stream. If the chosen model fails before writing anything, the next
   // configured model answers and a hidden <!--lens-model--> marker says which. A
@@ -29,11 +34,12 @@ export async function POST(req: Request) {
       try {
         const { error } = await streamWithFallback(
           candidates,
-          ({ id, model, last }) => {
-            const tools = researchTools(id);
+          ({ id, model, research, last }) => {
+            const tools = research ? researchTools(id) : null;
+            const mode = tools ? "on" : canSearch(id) && !wanted && !searchPaused(id) ? "available" : "unavailable";
             return streamText({
               model,
-              instructions: buildInstructions(state, docs, Boolean(tools)),
+              instructions: buildInstructions(state, docs, mode),
               ...(tools ? { tools } : {}),
               messages,
               abortSignal: req.signal,
@@ -43,7 +49,10 @@ export async function POST(req: Request) {
           },
           (part, attempt, skipped) => {
             if (part.type === "text-delta") {
-              if (!announced && skipped.length) controller.enqueue(enc.encode(modelMarker({ id: attempt.id, label: attempt.label, skipped }, nonce)));
+              const noResearch = wanted && !attempt.research && canSearch(attempt.id);
+              if (!announced && (skipped.length || noResearch)) {
+                controller.enqueue(enc.encode(modelMarker({ id: attempt.id, label: attempt.label, skipped, noResearch }, nonce)));
+              }
               announced = true;
               controller.enqueue(enc.encode(part.text));
             } else if (part.type === "source" && part.sourceType === "url" && !sources.some((s) => s.url === part.url)) {
@@ -51,6 +60,7 @@ export async function POST(req: Request) {
             }
           },
           req.signal,
+          (id) => wanted && canSearch(id),
         );
         if (error && !req.signal.aborted) controller.enqueue(enc.encode(errorMarker(describe(error), nonce)));
       } catch (e) {

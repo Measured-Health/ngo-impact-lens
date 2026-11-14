@@ -15,7 +15,7 @@ It applies the Managing NGOs course frameworks: Ebrahim & Rangan, Ebrahim's acco
 - **Brainstorms.** On request, or with "Brainstorm with me", it asks for the user's ideas first, builds on them, adds options, then helps choose.
 - **Claims ledger.** Every claim the organization makes is logged with its evidence status (verified, partly supported, not yet tested, unsupported, contradicted) in the sidebar's Evidence tab, and the advisor cites claims by id when they conflict.
 - **Knows the field.** Every reply draws on a researched knowledge base (`lib/knowledge.ts`): theory of change, logic models and logframes, SMART indicators, contribution analysis, outcome harvesting, systems thinking (stocks and flows, causal loops, the iceberg, archetypes, leverage points, the Water of Systems Change), systems building, collective impact, scaling out, up and deep, Ebrahim & Rangan, Ebrahim's accountability, the Advocacy Strategy Framework, Moore's public value triangle, the Value Proposition Canvas, concept notes, and mapping methods (outcome mapping, stakeholder and systems maps, problem trees, journey maps). Written in our own words with sources credited; no passages are reproduced. A searchable **Glossary** tab defines 64 terms and the words they are confused with.
-- **Researches on its own.** With Gemini, Claude or OpenAI models, the advisor can search the web whenever it decides that outside evidence would help, and lists the pages it used under its reply. Set `LENS_WEB_RESEARCH=off` to disable (for example to control search costs).
+- **Researches when it matters.** With Gemini, Claude or OpenAI models, web search is off by default to save the search allowance. It turns on for a reply when the user asks for outside facts ("look this up", "what does the evidence say"), or when the advisor decides outside evidence would genuinely change its next step: it says what it will check, and searches in its next reply. Pages it used are listed under the reply. If the provider refuses search (for example a free key with no search allowance), the advisor answers without it and a note says so. `LENS_WEB_RESEARCH=always` keeps search on for every reply; `LENS_WEB_RESEARCH=off` removes it.
 - **Switches models when one runs out.** If the chosen model fails before writing anything (a used-up daily quota, a rate limit, an outage), the next model in `LENS_MODELS` answers instead, and a short note under the reply says so. That model stays selected. Free tiers give each model its own daily allowance, so listing several Gemini models multiplies what the free key covers. Set `LENS_MODEL_FALLBACK=off` to disable.
 - **Sounds human.** Conversational, uses the field's terminology with a short gloss the first time.
 
@@ -170,3 +170,57 @@ lib/mock-model.ts       scripted model for end-to-end tests
 
 - Attachments must be text (`.txt`, `.md`, `.csv`, `.json`, `.html`). For PDF or Word files, paste the text.
 - Each document is capped at 60,000 characters, 150,000 in total. The oldest turns of very long conversations are dropped from what the model sees.
+
+## Adding features and making it better
+
+How the pieces fit, so a new feature lands in the right place.
+
+**Where things live**
+- What the advisor says and how it thinks: `lib/lens.ts` (the rules, the eight areas, the lenses, the page protocol).
+- What the advisor knows: `lib/knowledge.ts` (reference material, written in our own words, with sources) and `lib/glossary.ts` (the glossary tab; a unit test keeps the two in sync).
+- What the app shows: `components/` (chat, sidebar, framework views, slides, report, glossary).
+- What the server does: `app/api/chat` (the conversation) and `app/api/extract` (framework views and slides), with model choice, fallback and web search in `lib/models.ts` and `lib/fallback.ts`.
+
+**Common changes**
+- **A new stakeholder lens.** Add it to `LENSES` in `lib/lens.ts`, plus a keyword in `LENS_KEYWORDS` so the app recognizes it in the advisor's replies. It appears in the sidebar automatically.
+- **New knowledge or a framework.** Add a section to `lib/knowledge.ts` in your own words, with the author and year in its Sources list; never paste copyrighted text. If it adds terms, add them to `lib/glossary.ts` too.
+- **A change in how the advisor coaches.** Edit the matching section of the rules in `lib/lens.ts` (for example COACHING STANCE, DEPTH or VOICE), then try it in a real conversation: rules interact, so read a few full replies, not just one.
+- **A new framework view.** Add its fields to the JSON shape and parser in `lib/frameworks.ts`, a slide in `components/Frameworks.tsx`, and a tab in `FRAMEWORK_TABS`.
+- **A new model or provider.** Add it to `LENS_MODELS` with its key (see Any LLM provider). No code change is needed for providers already supported.
+
+**Keeping quality high**
+- Every change gets tests: unit tests in `tests/unit` for logic, browser tests in `tests/e2e` for what users see. The scripted mock model in `lib/mock-model.ts` lets browser tests run without an API key; add a trigger word there for any new path.
+- Before merging a change to the rules or knowledge, run two or three full conversations with a real model and read them as a demanding reviewer would: are terms used exactly, are citations real, does it ask rather than tell, does it go deep?
+- Keep the voice: plain, warm, precise, no stock phrases. Keep the coaching stance: the advisor draws answers out; it does not write the organization's strategy for it.
+- Work on a branch and open a pull request; merges to `main` deploy to production.
+
+## Future ideas
+
+Not built yet. Ideas for later versions, roughly in order of how much they would add.
+
+**Seeing the work from other sides**
+- **Role-play.** The advisor speaks *as* the stakeholder, in the first person ("I'm a mother in this community, and nobody asked me…"), so a team can practise the real conversation before having it.
+- **Panel.** Several lenses respond to the same idea side by side (say, a participant, a funder and a government official), so you see where they agree and where they pull apart.
+- **More lenses.** Add stakeholders that aren't on the list: a beneficiary's family, a competitor or peer NGO, a journalist, a regulator, a local leader or faith leader, a future beneficiary who is not yet served.
+- **Devil's advocate.** A lens whose only job is to argue the strongest case against the strategy.
+
+**Working together**
+- **Group sessions.** Several people join one review from their own devices (a board, a class, a project team), each speaking from their own role, with the advisor facilitating and summarizing where they differ.
+- **Facilitator mode.** For workshops: the advisor runs a timed session with prompts on a shared screen, and the facilitator steers.
+- **Comments and shared links.** Share a finished review with a supervisor or funder, who can comment on claims and scores.
+
+**Teaching and assessment**
+- **Course framework packs.** Load a course's own frameworks and vocabulary (for example a named value-proposition framework) so the advisor coaches in the course's terms.
+- **Rubric-based feedback.** Instructors set a rubric; the advisor scores a student's strategy against it and explains each score, with the evidence.
+- **Case library.** Worked examples of well-known organizations (using published sources) for practice before students examine their own.
+
+**Evidence and rigour**
+- **Evidence over time.** Save reviews and compare them across months: which claims moved from unsupported to verified, and which scores improved.
+- **PDF and Word upload.** Read documents directly instead of pasted text.
+- **Expert review mode.** A stricter setting for academic reviewers: every claim must cite its source, and the report includes an appendix of all evidence and assumptions.
+- **Quality checks.** A set of sample conversations, graded regularly against what a strategy professor would look for (precise terminology, correct citations, depth of questioning), to catch regressions when models or rules change.
+
+**Reach**
+- **Other languages.** Coaching in French, Hausa, Yoruba, Igbo, Swahili and others, with the glossary translated.
+- **Voice.** Speak and listen, for users more comfortable talking than typing.
+- **Low-bandwidth mode.** A lighter page and shorter replies for slow connections.

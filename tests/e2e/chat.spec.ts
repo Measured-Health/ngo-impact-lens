@@ -257,3 +257,29 @@ test("when the chosen model is out of quota, the next one answers and stays sele
   await expect(picker).toHaveValue("mock:scripted");
   await expect(page.locator(".note.err")).toHaveCount(0);
 });
+
+test("when web search is refused, the same model answers without it and says so", async ({ page }) => {
+  const picker = page.locator("select#model");
+  await picker.selectOption("mock:nosearch");
+  await say(page, "Please look up the evidence on coding clubs for girls in Lagos.");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await expect(page.locator(".model-note")).toContainText("Web research was unavailable for this reply");
+  await expect(page.locator(".model-note")).not.toContainText("answered");
+  await expect(picker).toHaveValue("mock:nosearch");
+  await expect(page.locator(".note.err")).toHaveCount(0);
+});
+
+test("web search is off unless the user asks or the advisor asked for it", async ({ page }) => {
+  const sources = (n: number) => page.locator(".msg.bot").nth(n).locator(".sources");
+  // RESEARCH_PLEASE makes the test model cite a page only when search is on.
+  await say(page, "RESEARCH_PLEASE we run coding clubs for girls.");
+  await expect(page.locator(".msg.bot").nth(1)).toContainText("Who defines the problem");
+  await expect(sources(1)).toHaveCount(0);
+  await say(page, "NEED_EVIDENCE our clubs reach 400 girls.");
+  await expect(page.locator(".msg.bot").nth(2)).toContainText("I'll check the evidence");
+  await say(page, "RESEARCH_PLEASE the girls choose themselves.");
+  await expect(sources(3)).toHaveCount(1);
+  await say(page, "RESEARCH_PLEASE and parents agree.");
+  await expect(page.locator(".msg.bot").nth(4)).toContainText("Who defines the problem");
+  await expect(sources(4)).toHaveCount(0);
+});
