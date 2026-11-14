@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-// Light/dark switch. Until the user picks, the page follows the device setting;
+// Light/dark switch. Light is the default whatever the device setting;
 // the choice is remembered in this browser (applied before paint by app/layout.tsx).
 export function ThemeToggle() {
   const [dark, setDark] = useState<boolean | null>(null);
   useEffect(() => {
-    const set = document.documentElement.dataset.theme;
-    setDark(set ? set === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches);
+    setDark(document.documentElement.dataset.theme === "dark");
   }, []);
   if (dark === null) return <span className="theme-btn" aria-hidden="true" />;
   const next = dark ? "light" : "dark";
