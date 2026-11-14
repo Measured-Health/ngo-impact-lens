@@ -227,8 +227,10 @@ Not built yet. Ideas for later versions, roughly in order of how much they would
 **Evidence and rigour**
 - **Evidence over time.** Save reviews and compare them across months: which claims moved from unsupported to verified, and which scores improved.
 - **PDF and Word upload.** Read documents directly instead of pasted text.
+- **Search inside long documents (retrieval).** Split uploaded reports, evaluations and course readings into passages with page numbers, store them in a small vector database (for example Postgres with pgvector), and give the advisor only the passages relevant to each question. Documents would no longer be cut off at the size limit, and claims could cite the exact passage ("Verified: midline evaluation, p. 4"). The built-in knowledge base stays whole in every prompt; retrieval is for the user's own material and course libraries, not a way to trim the advisor's knowledge.
+- **Citation guard.** Accept a reference only if it came from the knowledge base, a retrieved passage or a web search in that conversation, and flag anything else, so an invented citation can never reach a report.
 - **Expert review mode.** A stricter setting for academic reviewers: every claim must cite its source, and the report includes an appendix of all evidence and assumptions.
-- **Quality checks.** A set of sample conversations, graded regularly against what a strategy professor would look for (precise terminology, correct citations, depth of questioning), to catch regressions when models or rules change.
+- **Scheduled quality checks.** The sample conversations in `scripts/quality` are run by hand today; run them automatically after every change to the rules or the model, and flag any criterion that drops below 3.
 
 **Reach**
 - **Other languages.** Coaching in French, Hausa, Yoruba, Igbo, Swahili and others, with the glossary translated.
