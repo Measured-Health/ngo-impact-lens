@@ -1,12 +1,14 @@
 import "server-only";
 import type { LanguageModel } from "ai";
 import { INITIAL_STATE, trimHistory, type ChatTurn, type LensDocument, type ReviewState } from "@/lib/lens";
-import { listModels, resolveModel } from "@/lib/models";
+import { fallbackOrder, listModels, resolveModel } from "@/lib/models";
 
 type Body = { model?: string; turns?: ChatTurn[]; state?: ReviewState; docs?: LensDocument[] };
 export type LensRequest = {
   model: LanguageModel;
   modelId: string;
+  /** The chosen model, then the fallbacks to try if it fails before writing anything. */
+  candidates: string[];
   history: { role: "user" | "assistant"; content: string }[];
   docs: LensDocument[];
   state: ReviewState;
@@ -35,5 +37,5 @@ export async function readLensRequest(req: Request): Promise<{ error: Response }
   const docs = (Array.isArray(body.docs) ? body.docs : [])
     .filter((d) => typeof d?.name === "string" && typeof d?.text === "string")
     .map((d) => ({ name: d.name.slice(0, 200), text: d.text }));
-  return { model, modelId: modelId!, history: trimHistory(turns), docs, state: { ...INITIAL_STATE, ...(body.state ?? {}) } };
+  return { model, modelId: modelId!, candidates: fallbackOrder(modelId!), history: trimHistory(turns), docs, state: { ...INITIAL_STATE, ...(body.state ?? {}) } };
 }

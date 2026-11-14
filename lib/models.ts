@@ -16,7 +16,8 @@ import { createGateway, createProviderRegistry, type LanguageModel, type ToolSet
 //   gateway:    AI_GATEWAY_API_KEY             (Vercel AI Gateway, ids like anthropic/claude-sonnet-5.5)
 //   local:      LOCAL_LLM_BASE_URL [+ LOCAL_LLM_API_KEY]
 //               any OpenAI-compatible server: Ollama, vLLM, LM Studio, Groq, Together, OpenRouter…
-//   mock:       LENS_MOCK_LLM=1                (scripted replies, for tests only)
+//   mock:       LENS_MOCK_LLM=1                (scripted replies, for tests only;
+//                                               mock:exhausted always fails with a quota error)
 
 export type ModelOption = { id: string; label: string };
 
@@ -64,6 +65,20 @@ export function listModels(env: Env = process.env): ModelOption[] {
   return out;
 }
 
+/**
+ * The chosen model first, then every other configured model in LENS_MODELS order,
+ * tried in turn when one fails before writing anything (e.g. a used-up quota).
+ * LENS_MODEL_FALLBACK=off keeps only the chosen model.
+ */
+export function fallbackOrder(id: string, env: Env = process.env): string[] {
+  if (env.LENS_MODEL_FALLBACK === "off") return [id];
+  return [id, ...listModels(env).map((m) => m.id).filter((m) => m !== id)];
+}
+
+export function modelLabel(id: string, env: Env = process.env): string {
+  return listModels(env).find((m) => m.id === id)?.label ?? id;
+}
+
 let registry: ReturnType<typeof buildRegistry> | null = null;
 
 function buildRegistry() {
@@ -87,8 +102,8 @@ function buildRegistry() {
 export async function resolveModel(id: string): Promise<LanguageModel | null> {
   if (!listModels().some((m) => m.id === id)) return null;
   if (id.startsWith("mock:")) {
-    const { scriptedModel } = await import("./mock-model");
-    return scriptedModel();
+    const { exhaustedModel, scriptedModel } = await import("./mock-model");
+    return id === "mock:exhausted" ? exhaustedModel() : scriptedModel();
   }
   registry ??= buildRegistry();
   return registry.languageModel(id as never);

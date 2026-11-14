@@ -12,6 +12,6 @@ export default defineConfig({
     command: `npx next start -p ${PORT} -H 127.0.0.1`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: false,
-    env: { LENS_MOCK_LLM: "1", LENS_MODELS: "mock:scripted=Scripted test model" },
+    env: { LENS_MOCK_LLM: "1", LENS_MODELS: "mock:scripted=Scripted test model,mock:exhausted=Out-of-quota test model" },
   },
 });

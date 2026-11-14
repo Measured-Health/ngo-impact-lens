@@ -246,3 +246,14 @@ test("light is the default even on a dark device, and the switch is remembered",
   await page.getByRole("button", { name: "Switch to light theme" }).click();
   expect(await bg()).toBe(light);
 });
+
+test("when the chosen model is out of quota, the next one answers and stays selected", async ({ page }) => {
+  const picker = page.locator("select#model");
+  await picker.selectOption("mock:exhausted");
+  await say(page, "We run coding clubs for girls in Lagos.");
+  await expect(page.locator(".model-note")).toContainText("Out-of-quota test model was unavailable");
+  await expect(page.locator(".model-note")).toContainText("Scripted test model answered");
+  await expect(page.locator(".msg.bot").last()).not.toContainText("lens-model");
+  await expect(picker).toHaveValue("mock:scripted");
+  await expect(page.locator(".note.err")).toHaveCount(0);
+});

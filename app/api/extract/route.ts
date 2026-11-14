@@ -1,4 +1,5 @@
 import { streamText } from "ai";
+import { streamWithFallback } from "@/lib/fallback";
 import { FRAMEWORKS_INSTRUCTIONS, FRAMEWORKS_REQUEST, parseFrameworks } from "@/lib/frameworks";
 import { docsBlock, OPENING } from "@/lib/lens";
 import { describe } from "@/lib/provider-errors";
@@ -20,27 +21,26 @@ export async function POST(req: Request) {
   const k = KINDS[kind];
   const r = await readLensRequest(req);
   if ("error" in r) return r.error;
-  const { model, history, docs } = r;
+  const { candidates, history, docs } = r;
   if (!history.some((t) => t.role === "user")) {
     return Response.json({ error: `Describe the organization first, then make the ${k.what}.` }, { status: 400 });
   }
 
+  // Falls back to the next configured model if the chosen one fails before writing.
   let text = "";
-  try {
-    const result = streamText({
+  const { error } = await streamWithFallback(
+    candidates,
+    ({ model, last }) => streamText({
       model,
       instructions: k.instructions + docsBlock(docs),
       messages: [{ role: "assistant", content: OPENING }, ...history, { role: "user", content: k.request }],
       abortSignal: req.signal,
-    });
-    for await (const part of result.fullStream) {
-      if (part.type === "text-delta") text += part.text;
-      else if (part.type === "error") throw part.error;
-    }
-  } catch (e) {
-    console.error(`[lens] ${kind} failed`, e);
-    return Response.json({ error: describe(e) }, { status: 502 });
-  }
+      ...(last ? {} : { maxRetries: 0 }),
+    }),
+    (part) => { if (part.type === "text-delta") text += part.text; },
+    req.signal,
+  );
+  if (error) return Response.json({ error: describe(error) }, { status: 502 });
 
   const data = k.parse(text);
   if (!data) {
