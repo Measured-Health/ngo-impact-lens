@@ -103,6 +103,10 @@ export function reply(prompt: PromptMessage[]): string {
     const names = [...system.matchAll(/^=== (.+) ===$/gm)].map((m) => m[1]);
     return "Documents seen: " + (names.join(", ") || "none") + marker({ stage: "setup", current: 0, covered: [], lens: "" });
   }
+  if (/NEED_EVIDENCE/.test(last)) {
+    return "I'll check the evidence on girls' coding clubs. **Meanwhile, who decides who joins?**" +
+      marker({ stage: "diagnose", current: 1, covered: [], lens: "", research: "evidence on girls' coding clubs" });
+  }
   if (/CLOSE_AREA/.test(last)) {
     return "Area verdict: the value proposition holds for girls but demand is unproven. **Next, what is the causal chain?**" +
       marker({ stage: "diagnose", current: 1, covered: [1], lens: "", scores: { 1: { evidence: 2, alignment: 3, note: "Clear need, little proof of demand." } },

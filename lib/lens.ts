@@ -63,6 +63,8 @@ export type ReviewState = {
   claims: Claim[];
   /** Area number -> how many advisor replies have probed it. */
   probes: Record<string, number>;
+  /** What the advisor asked to check on the web; search is on for its next reply. */
+  researchNext?: string;
 };
 
 /** Follow-up replies an area needs before it can count as examined. */
@@ -85,7 +87,7 @@ export type ChatTurn = {
 export type LensDocument = { name: string; text: string };
 export type WebSource = { url: string; title: string };
 
-export const INITIAL_STATE: ReviewState = { stage: "setup", current: 0, covered: [], lens: "", scores: {}, claims: [], probes: {} };
+export const INITIAL_STATE: ReviewState = { stage: "setup", current: 0, covered: [], lens: "", scores: {}, claims: [], probes: {}, researchNext: "" };
 
 export const OPENING =
   "Welcome to **NGO Strategy & Impact Lens**. I will help you examine whether an organization's mission, theory of change, strategy, operations, funding model, and accountability system fit together. I will not simply summarize your organization; I will ask questions from the perspective of people who must experience, deliver, fund, govern, or evaluate its work.\n\n" +
@@ -239,6 +241,7 @@ End EVERY reply with one final line of compact JSON, exactly in this form, which
 - lens: the stakeholder perspective you are speaking from, or "" if none chosen yet.
 - scores: only for areas you close in this reply (omit or {} otherwise).
 - claims: only claims that are new or changed in this reply (omit or [] otherwise). Log every specific claim the organization makes about its problem, reach, results, costs, causes, partners or funding. Number new claims after the last id in the ledger the app shows you; reuse an id to update a claim. status is one of verified (credible evidence was given), partial (some evidence, gaps remain), untested (not yet examined), unsupported (asked, no evidence given), contradicted (conflicts with other evidence or claims). evidence says in a few words what supports it or what is missing. source is "user", "document: <file name>" or "inference". Keep text under 25 words.
+- research: only when web search is off for this reply and you need it for your next one (see WEB RESEARCH); otherwise omit it.
 Do not mention this line.`;
 
 /** Documents are capped per file and in total so a prompt stays within every provider's context window. */
@@ -248,8 +251,8 @@ export const HISTORY_CHAR_LIMIT = 200_000;
 
 const RESEARCH_ON = `
 
-WEB RESEARCH
-You can search the web, and you decide when. Use it for facts from outside the conversation: evidence on what works for this kind of intervention, sector statistics, the policy context in the country, comparable organizations, and how a framework is defined. Search when it would make your next question sharper or correct a misunderstanding; do not search for things only the user can know.
+WEB RESEARCH (ON FOR THIS REPLY)
+You can search the web in this reply, because the user asked for it or you asked for it last time. Search only if it still serves the conversation. Use it for facts from outside the conversation: evidence on what works for this kind of intervention, sector statistics, the policy context in the country, comparable organizations, and how a framework is defined. Search when it would make your next question sharper or correct a misunderstanding; do not search for things only the user can know.
 - Name what you found in the text, with the organization and year ("A 2019 J-PAL review found ..."). The app lists the pages you used under your reply.
 - Keep what you found separate from what the user told you. Never present search results as facts about the user's organization.
 - Keep coaching: turn findings into questions ("Studies of similar programs found little effect on profits after a year. What makes you expect a different result?") rather than answers.
@@ -260,6 +263,11 @@ const RESEARCH_OFF = `
 
 WEB RESEARCH IS NOT AVAILABLE
 Web search is not available for this reply. If the user asks you to look something up, say so, answer from general knowledge only if you are confident, and say it is unchecked.`;
+
+const RESEARCH_AVAILABLE = `
+
+WEB RESEARCH (OFF FOR THIS REPLY)
+Web search is off by default, to save the search allowance. It turns on for a reply when the user asks you to look something up, or when you ask for it. Ask for it only when outside evidence would genuinely change your next step (what works for this kind of intervention, sector statistics, the country's policy context, how comparable organizations fared), the user cannot supply it, and your reference knowledge is not enough. Then add "research":"<what you will check, under 12 words>" to the page marker, and tell the user in one short sentence what you will check; search will be on for your next reply. Never claim to have searched in this reply. If the user wants facts you are not confident of, say they are unchecked and offer to look them up.`;
 
 const KNOWLEDGE_BLOCK = `
 
@@ -273,7 +281,17 @@ CITING AUTHORS AND SOURCES
 
 ` + KNOWLEDGE;
 
-export function buildInstructions(state: ReviewState, docs: LensDocument[], research = false): string {
+/** Web search for one reply: on, available on request, or not available at all. */
+export type ResearchMode = "on" | "available" | "unavailable";
+
+const RESEARCH_BLOCK: Record<ResearchMode, string> = { on: RESEARCH_ON, available: RESEARCH_AVAILABLE, unavailable: RESEARCH_OFF };
+
+/** True when the user's message asks for outside facts, so this reply may search. */
+export function wantsResearch(text: string): boolean {
+  return /\b(search|google|look (it |this |that |them |these )?up|look into|research (it|this|that|the|on|for|whether)|find (me |out |us )?(some |the |any )?(evidence|data|studies|statistics|figures|examples|sources|research)|latest|up[- ]to[- ]date|recent (data|studies|evidence|figures|research)|statistics|stats|studies (on|about|of|show)|what (does|do) the (evidence|research|data|literature) say|what does evidence say|cite|sources? (for|on)|evidence (on|for|that|about)|check (online|the web|the evidence|the data))\b/i.test(text);
+}
+
+export function buildInstructions(state: ReviewState, docs: LensDocument[], research: ResearchMode = "unavailable"): string {
   const probes = AREAS.map((a, i) => {
     const n = i + 1, p = state.probes?.[n] ?? 0, s = state.scores?.[n];
     return `${n} ${a}: ${p} exchange${p === 1 ? "" : "s"}` + (s ? `, scored evidence ${s.evidence}/4, alignment ${s.alignment}/4` : "") +
@@ -287,7 +305,7 @@ export function buildInstructions(state: ReviewState, docs: LensDocument[], rese
     "\nStage: " + state.stage +
     "\nAreas (exchanges so far):\n" + probes +
     "\nClaims ledger:\n" + ledger;
-  return RULES + (research ? RESEARCH_ON : RESEARCH_OFF) + KNOWLEDGE_BLOCK + page + docsBlock(docs);
+  return RULES + RESEARCH_BLOCK[research] + KNOWLEDGE_BLOCK + page + docsBlock(docs);
 }
 
 /** The user's documents, capped, appended to the instructions as data. */
@@ -445,7 +463,7 @@ export function matchLens(raw: string): string {
 }
 
 /** Folds a reply's state marker into the review state, ignoring anything malformed. */
-type Marker = Partial<Omit<ReviewState, "scores" | "claims">> & { scores?: unknown; claims?: unknown };
+type Marker = Partial<Omit<ReviewState, "scores" | "claims">> & { scores?: unknown; claims?: unknown; research?: unknown };
 
 const clampScore = (v: unknown) => Math.max(0, Math.min(4, Math.round(Number(v)) || 0));
 const short = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
@@ -496,6 +514,7 @@ export function mergeState(prev: ReviewState, raw: Marker | null): ReviewState {
   if (Number.isInteger(raw.current) && (raw.current as number) >= 0 && (raw.current as number) <= 8) next.current = raw.current as number;
   if (typeof raw.lens === "string" && raw.lens) next.lens = matchLens(raw.lens);
   if (next.current > 0) next.probes[next.current] = (next.probes[next.current] ?? 0) + 1;
+  next.researchNext = short(raw.research, 120);
   Object.assign(next.scores, readScores(raw.scores));
   for (const c of readClaims(raw.claims)) {
     const i = next.claims.findIndex((x) => x.id === c.id);

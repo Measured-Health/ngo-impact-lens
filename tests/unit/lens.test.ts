@@ -174,3 +174,27 @@ describe("switch notes", () => {
     expect(both).toMatch(/Web research was unavailable/);
   });
 });
+
+describe("wantsResearch", () => {
+  it("spots requests for outside facts, not ordinary answers", async () => {
+    const { wantsResearch } = await import("@/lib/lens");
+    for (const t of ["Can you look this up?", "What does the evidence say about cash transfers?", "Find some studies on this", "Any statistics on girls' enrolment in Benue?", "search for similar NGOs"]) {
+      expect(wantsResearch(t), t).toBe(true);
+    }
+    for (const t of ["We run coding clubs for girls in Lagos.", "Our funders are two foundations.", "We do research with communities before we start."]) {
+      expect(wantsResearch(t), t).toBe(false);
+    }
+  });
+  it("tells the model how search works in each mode", async () => {
+    const { buildInstructions } = await import("@/lib/lens");
+    expect(buildInstructions(INITIAL_STATE, [], "on")).toContain("WEB RESEARCH (ON FOR THIS REPLY)");
+    expect(buildInstructions(INITIAL_STATE, [], "available")).toContain('add "research":');
+    expect(buildInstructions(INITIAL_STATE, [])).toContain("WEB RESEARCH IS NOT AVAILABLE");
+  });
+  it("keeps the advisor's research request for one reply only", async () => {
+    const { mergeState } = await import("@/lib/lens");
+    const asked = mergeState(INITIAL_STATE, { stage: "diagnose", research: "evidence on clubs" } as never);
+    expect(asked.researchNext).toBe("evidence on clubs");
+    expect(mergeState(asked, { stage: "diagnose" }).researchNext).toBe("");
+  });
+});
